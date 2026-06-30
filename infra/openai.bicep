@@ -17,9 +17,9 @@ resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   }
 }
 
-resource gpt4o 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+resource gpt41 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: openAi
-  name: 'gpt-4o'
+  name: 'gpt-4.1'
   sku: {
     name: 'GlobalStandard'
     capacity: capacity
@@ -27,8 +27,8 @@ resource gpt4o 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-4o'
-      version: '2024-11-20'
+      name: 'gpt-4.1'
+      version: '2025-04-14'
     }
   }
 }
