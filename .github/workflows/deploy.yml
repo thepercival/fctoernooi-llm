@@ -16,6 +16,8 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - uses: actions/checkout@v4
+
       - name: Azure login
         uses: azure/login@v2
         with:
@@ -33,6 +35,16 @@ jobs:
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Deploy Azure OpenAI to dev
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group rg-cdk-dev \
+              --template-file infra/openai.bicep \
+              --parameters infra/parameters/dev.bicepparam
+
   deploy-acc:
     needs: deploy-dev
     environment: acc
@@ -41,6 +53,8 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - uses: actions/checkout@v4
+
       - name: Azure login
         uses: azure/login@v2
         with:
@@ -58,6 +72,16 @@ jobs:
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Deploy Azure OpenAI to acc
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group rg-cdk-acc \
+              --template-file infra/openai.bicep \
+              --parameters infra/parameters/acc.bicepparam
+
   deploy-prd:
     needs: deploy-acc
     environment: prd
@@ -66,6 +90,8 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - uses: actions/checkout@v4
+
       - name: Azure login
         uses: azure/login@v2
         with:
@@ -82,3 +108,13 @@ jobs:
               --name rg-cdk-prd \
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Azure OpenAI to prd
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group rg-cdk-prd \
+              --template-file infra/openai.bicep \
+              --parameters infra/parameters/prd.bicepparam
