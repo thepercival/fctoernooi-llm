@@ -10,6 +10,7 @@ on:
 jobs:
   deploy-dev:
     if: github.event.pull_request.merged == true
+    environment: dev
     runs-on: ubuntu-latest
     permissions:
       id-token: write
