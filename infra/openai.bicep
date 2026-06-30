@@ -7,7 +7,7 @@ var openAiName = 'aoai-cdk-${environmentName}'
 resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: openAiName
   location: location
-  kind: 'OpenAI'
+  kind: 'AIServices'
   sku: {
     name: 'S0'
   }
@@ -17,9 +17,9 @@ resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   }
 }
 
-resource gpt5mini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+resource gpt54mini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: openAi
-  name: 'gpt-5-mini'
+  name: 'gpt-5.4-mini'
   sku: {
     name: 'GlobalStandard'
     capacity: capacity
@@ -27,8 +27,8 @@ resource gpt5mini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' 
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-5-mini'
-      version: '2025-08-07'
+      name: 'gpt-5.4-mini'
+      version: '2026-03-17'
     }
   }
 }
