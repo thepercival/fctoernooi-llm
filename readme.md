@@ -2,6 +2,23 @@
 
 Chat assistant that helps logged-in users manage tournaments using the tournament-api and scheduler-api.
 
+## CI/CD Pipeline
+
+```mermaid
+flowchart LR
+    A[push to\nnon-main branch] -->|deploy.yml| B[deploy-dev\nrg-cdk-dev]
+    C[PR merged\ninto main] -->|deploy.yml| D[deploy-acc\nrg-cdk-acc]
+    D --> E[deploy-prd\nrg-cdk-prd]
+```
+
+| Event | Condition | Job | Environment |
+|---|---|---|---|
+| `push` | any branch except `main` | `deploy-dev` | dev |
+| `pull_request` closed | `merged == true` into `main` | `deploy-acc` | acc |
+| after `deploy-acc` succeeds | — | `deploy-prd` | prd |
+
+Each job: creates resource group if not exists → deploys `infra/openai.bicep` with the matching `.bicepparam`.
+
 ## Architecture
 
 ### Approach: Function Calling (Tool Use)
