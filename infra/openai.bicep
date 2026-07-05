@@ -2,7 +2,7 @@ param environmentName string
 param location string = resourceGroup().location
 param capacity int
 
-var openAiName = 'aoai-cdk-${environmentName}'
+var openAiName = 'aoai-fctoernooi-${environmentName}'
 
 resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: openAiName

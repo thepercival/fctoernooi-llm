@@ -28,13 +28,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create rg-cdk-dev if not exists
+      - name: Create rg-fctoernooi-dev if not exists
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
             az group create \
-              --name rg-cdk-dev \
+              --name rg-fctoernooi-dev \
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
@@ -44,7 +44,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             az deployment group create \
-              --resource-group rg-cdk-dev \
+              --resource-group rg-fctoernooi-dev \
               --template-file infra/openai.bicep \
               --parameters infra/parameters/dev.bicepparam
 
@@ -65,13 +65,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create rg-cdk-acc if not exists
+      - name: Create rg-fctoernooi-acc if not exists
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
             az group create \
-              --name rg-cdk-acc \
+              --name rg-fctoernooi-acc \
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
@@ -81,7 +81,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             az deployment group create \
-              --resource-group rg-cdk-acc \
+              --resource-group rg-fctoernooi-acc \
               --template-file infra/openai.bicep \
               --parameters infra/parameters/acc.bicepparam
 
@@ -102,13 +102,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create rg-cdk-prd if not exists
+      - name: Create rg-fctoernooi-prd if not exists
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
             az group create \
-              --name rg-cdk-prd \
+              --name rg-fctoernooi-prd \
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
@@ -118,6 +118,6 @@ jobs:
           azcliversion: latest
           inlineScript: |
             az deployment group create \
-              --resource-group rg-cdk-prd \
+              --resource-group rg-fctoernooi-prd \
               --template-file infra/openai.bicep \
               --parameters infra/parameters/prd.bicepparam

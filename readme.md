@@ -6,9 +6,9 @@ Chat assistant that helps logged-in users manage tournaments using the tournamen
 
 ```mermaid
 flowchart LR
-    A[push to\nnon-main branch] -->|deploy.yml| B[deploy-dev\nrg-cdk-dev]
-    C[PR merged\ninto main] -->|deploy.yml| D[deploy-acc\nrg-cdk-acc]
-    D --> E[deploy-prd\nrg-cdk-prd]
+    A[push to\nnon-main branch] -->|deploy.yml| B[deploy-dev\nrg-fctoernooi-dev]
+    C[PR merged\ninto main] -->|deploy.yml| D[deploy-acc\nrg-fctoernooi-acc]
+    D --> E[deploy-prd\nrg-fctoernooi-prd]
 ```
 
 | Event | Condition | Job | Environment |
@@ -98,7 +98,7 @@ Azure AIServices (`kind: 'AIServices'`) deployed via Bicep + GitHub Actions.
 
 **Endpoint pattern:**
 ```
-https://aoai-cdk-{env}.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=2025-04-01-preview
+https://aoai-fctoernooi-{env}.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=2025-04-01-preview
 ```
 
 Environments: `dev` (capacity 10) · `acc` (capacity 20) · `prd` (capacity 50)
