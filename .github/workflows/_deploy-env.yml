@@ -21,7 +21,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Azure login
         uses: azure/login@v3
@@ -31,7 +31,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Create ${{ inputs.resource-group }} if not exists
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           azcliversion: latest
           inlineScript: |
@@ -41,12 +41,13 @@ jobs:
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy Azure OpenAI to ${{ inputs.environment }}
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           azcliversion: latest
           inlineScript: |
             az deployment group create \
               --resource-group ${{ inputs.resource-group }} \
-              --template-file infra/openai.bicep \
-              --parameters infra/parameters/${{ inputs.environment }}.json \
-              --parameters coreResourceGroupName=${{ inputs.core-resource-group }}
+              --template-file infra/main.bicep \
+              --parameters infra/parameters.json \
+              --parameters coreResourceGroupName=${{ inputs.core-resource-group }} \
+              --parameters environment=${{ inputs.environment }}
