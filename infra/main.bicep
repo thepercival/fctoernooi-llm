@@ -39,13 +39,19 @@ module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
 
 // ── Backend App Service ───────────────────────────────────────────────────────
 
+resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: applicationInsightsName
+  scope: resourceGroup(coreResourceGroupName)
+}
+
 module modAppServiceBackend 'br/modules:app-service:latest' = {
   name: 'modAppServiceBackend'
   params: {
     appServiceName: appServiceBackendName
     location: location
-    appServicePlanId: modAppServicePlan.outputs.appServicePlanId
-    applicationInsightsName: applicationInsightsName
+    appServicePlanId: modAppServicePlan.outputs.appServicePlanId    
+    appInsightsConnectionString: resAppInsights.properties.ConnectionString
+    appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
     linuxFxVersion: appServiceBackend.linuxFxVersion
     additionEnvironmentVariables: []
     appKind: appServiceBackend.kind
