@@ -40,7 +40,7 @@ jobs:
               --location westeurope \
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy Azure OpenAI to ${{ inputs.environment }}
+      - name: Deploy Azure Resources to ${{ inputs.environment }}
         uses: azure/cli@v3
         with:
           azcliversion: latest

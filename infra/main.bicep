@@ -1,7 +1,9 @@
 param location string = resourceGroup().location
+@minLength(3)
 param environment string
 param coreResourceGroupName string
 
+param logAnalyticsWorkspace object
 param apim object
 param appServicePlan object
 param applicationInsights object
@@ -19,12 +21,19 @@ var applicationInsightsName = '${applicationInsights.name}-${environment}'
 var appServiceBackendName = '${appServiceBackend.name}-${environment}'
 // var appServiceFrontendName = '${appServiceFrontend.name}-${environment}'
 
-module modAppServicePlan 'modules/appServicePlan.bicep' = {
+resource resLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+  name: '${logAnalyticsWorkspace.name}-${environment}'
+  scope: resourceGroup(coreResourceGroupName)
+}
+
+module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
   name: 'modAppServicePlan'
   params: {
-    name: appServicePlanName
+    planName: appServicePlanName
     location: location
-    sku: appServicePlan.sku
+    skuName: appServicePlan.sku.name
+    skuTier: appServicePlan.sku.tier
+    loganalyticsWorkspaceId: resLogAnalyticsWorkspace.id
   }
 }
 
