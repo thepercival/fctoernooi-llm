@@ -14,6 +14,9 @@ jobs:
   deploy-dev:
     if: github.event_name == 'push'
     uses: ./.github/workflows/_deploy-env.yml
+    permissions:
+      id-token: write
+      contents: read
     with:
       environment: dev
       resource-group: rg-fctoernooi-dev
@@ -23,6 +26,9 @@ jobs:
   deploy-acc:
     if: github.event.pull_request.merged == true
     uses: ./.github/workflows/_deploy-env.yml
+    permissions:
+      id-token: write
+      contents: read
     with:
       environment: acc
       resource-group: rg-fctoernooi-acc
@@ -32,6 +38,9 @@ jobs:
   deploy-prd:
     needs: deploy-acc
     uses: ./.github/workflows/_deploy-env.yml
+    permissions:
+      id-token: write
+      contents: read
     with:
       environment: prd
       resource-group: rg-fctoernooi-prd
