@@ -13,111 +13,29 @@ on:
 jobs:
   deploy-dev:
     if: github.event_name == 'push'
-    environment: dev
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Create rg-fctoernooi-dev if not exists
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az group create \
-              --name rg-fctoernooi-dev \
-              --location westeurope \
-              --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy Azure OpenAI to dev
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az deployment group create \
-              --resource-group rg-fctoernooi-dev \
-              --template-file infra/openai.bicep \
-              --parameters infra/parameters/dev.bicepparam
+    uses: ./.github/workflows/_deploy-env.yml
+    with:
+      environment: dev
+      resource-group: rg-fctoernooi-dev
+      core-resource-group: rg-core-dev
+    secrets: inherit
 
   deploy-acc:
     if: github.event.pull_request.merged == true
-    environment: acc
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Create rg-fctoernooi-acc if not exists
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az group create \
-              --name rg-fctoernooi-acc \
-              --location westeurope \
-              --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy Azure OpenAI to acc
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az deployment group create \
-              --resource-group rg-fctoernooi-acc \
-              --template-file infra/openai.bicep \
-              --parameters infra/parameters/acc.bicepparam
+    uses: ./.github/workflows/_deploy-env.yml
+    with:
+      environment: acc
+      resource-group: rg-fctoernooi-acc
+      core-resource-group: rg-core-acc
+    secrets: inherit
 
   deploy-prd:
     needs: deploy-acc
-    environment: prd
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
+    uses: ./.github/workflows/_deploy-env.yml
+    with:
+      environment: prd
+      resource-group: rg-fctoernooi-prd
+      core-resource-group: rg-core-prd
+    secrets: inherit
 
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create rg-fctoernooi-prd if not exists
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az group create \
-              --name rg-fctoernooi-prd \
-              --location westeurope \
-              --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy Azure OpenAI to prd
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az deployment group create \
-              --resource-group rg-fctoernooi-prd \
-              --template-file infra/openai.bicep \
-              --parameters infra/parameters/prd.bicepparam

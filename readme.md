@@ -4,20 +4,55 @@ Chat assistant that helps logged-in users manage tournaments using the tournamen
 
 ## CI/CD Pipeline
 
+### Triggers & environment flow
+
+**push to non-main branch**
+
 ```mermaid
 flowchart LR
-    A[push to\nnon-main branch] -->|deploy.yml| B[deploy-dev\nrg-fctoernooi-dev]
-    C[PR merged\ninto main] -->|deploy.yml| D[deploy-acc\nrg-fctoernooi-acc]
-    D --> E[deploy-prd\nrg-fctoernooi-prd]
+    push([PR merged into main])
+
+    subgraph BUILD["Build  parallel jobs"]
+        direction TB
+        bb["build-backend"]
+        bf["build-frontend"]
+    end
+
+    push --> BUILD
+    
+    subgraph PRD["PRD rg-fctoernooi-prd"]
+        direction TB
+        subgraph DEV_INFRA["Infra  deploy-infra job"]
+            di1[OIDC login] --> di2[create resource group\nrg-fctoernooi-env]
+            di2 --> di3["deployment\n---\nApp Service Plan\nAppServices \nApim-Api\nFoundryProject"]
+        end
+        subgraph DEV_SRC["Source-jobs in paralel"]
+            ds1["deploy\n webapp as-fctoernooi-api-env"]
+            ds2["deploy\n webapp as-fctoernooi-frontend-env"]
+        end
+        DEV_INFRA --> DEV_SRC
+    end
+
+    BUILD -- deployment ACC must succeed --> PRD
 ```
 
-| Event | Condition | Job | Environment |
-|---|---|---|---|
-| `push` | any branch except `main` | `deploy-dev` | dev |
-| `pull_request` closed | `merged == true` into `main` | `deploy-acc` | acc |
-| after `deploy-acc` succeeds | — | `deploy-prd` | prd |
+### Trigger rules
 
-Each job: creates resource group if not exists → deploys `infra/openai.bicep` with the matching `.bicepparam`.
+| Event | Condition | Environment |
+|---|---|---|
+| `push` | any branch except `main` | dev |
+| `pull_request` closed | `merged == true` into `main` | acc |
+| after acc succeeds | — | prd |
+
+### Infra vs source — what each deploys
+
+| Section | Bicep / command | Resources |
+|---|---|---|
+| **Infra** | `infra/main.bicep` + `parameters/<env>.json` | App Service Plan (`rg-fctoernooi-<env>`), backend App Service (APIM-restricted), frontend App Service, APIM backend + API + product (in `rg-core-<env>`) |
+| **Source — backend** | `az webapp deploy` → staging slot → swap | `as-fctoernooi-api-<env>` |
+| **Source — frontend** | `az webapp deploy` → staging slot → swap | `as-fctoernooi-frontend-<env>` |
+
+
 
 ## Architecture
 

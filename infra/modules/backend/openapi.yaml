@@ -1,0 +1,1674 @@
+openapi: 3.0.3
+info:
+  title: FCToernooi API
+  version: 1.0.0
+  description: API for managing FCToernooi tournaments.
+servers:
+  - url: /
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  # ── Auth (public) ────────────────────────────────────────────────────────────
+
+  /public/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email address already in use.
+
+  /public/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /public/auth/passwordreset:
+    post:
+      tags: [Auth]
+      summary: Request a password reset email
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emailaddress]
+              properties:
+                emailaddress:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent.
+
+  /public/auth/passwordchange:
+    post:
+      tags: [Auth]
+      summary: Change password using reset token
+      operationId: changePassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/extendtoken:
+    post:
+      tags: [Auth]
+      summary: Extend JWT token lifetime
+      operationId: extendToken
+      responses:
+        '200':
+          description: New JWT token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/validate/{code}:
+    post:
+      tags: [Auth]
+      summary: Validate email address with code
+      operationId: validateEmail
+      parameters:
+        - $ref: '#/components/parameters/code'
+      responses:
+        '200':
+          description: Email validated.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/validationrequest:
+    post:
+      tags: [Auth]
+      summary: Re-send validation email
+      operationId: validationRequest
+      responses:
+        '200':
+          description: Validation email sent.
+
+  /auth/profile/{userId}:
+    put:
+      tags: [Auth]
+      summary: Update user profile (name)
+      operationId: updateProfile
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 15
+      responses:
+        '200':
+          description: Profile updated.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ── Users ────────────────────────────────────────────────────────────────────
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user
+      operationId: getUser
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: User.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Update user
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Users]
+      summary: Delete user account
+      operationId: deleteUser
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '204':
+          description: User deleted.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ── Payments ─────────────────────────────────────────────────────────────────
+
+  /payments/methods:
+    get:
+      tags: [Payments]
+      summary: List available payment methods
+      operationId: listPaymentMethods
+      responses:
+        '200':
+          description: Payment methods.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /payments/idealissuers:
+    get:
+      tags: [Payments]
+      summary: List iDEAL issuers
+      operationId: listIDealIssuers
+      responses:
+        '200':
+          description: iDEAL issuers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IDealIssuer'
+
+  /payments/buycredits:
+    post:
+      tags: [Payments]
+      summary: Purchase credits
+      operationId: buyCredits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyCreditsRequest'
+      responses:
+        '200':
+          description: Payment initiated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /payments/{paymentId}:
+    get:
+      tags: [Payments]
+      summary: Get payment
+      operationId: getPayment
+      parameters:
+        - $ref: '#/components/parameters/paymentId'
+      responses:
+        '200':
+          description: Payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Tournaments (public) ─────────────────────────────────────────────────────
+
+  /public/tournaments/{tournamentId}:
+    get:
+      tags: [Tournaments]
+      summary: Get public tournament
+      operationId: getPublicTournament
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Tournament.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /public/tournaments/{tournamentId}/structure:
+    get:
+      tags: [Tournaments]
+      summary: Get public tournament structure
+      operationId: getPublicStructure
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Tournament structure (JSON).
+
+  /public/tournaments/{tournamentId}/rules:
+    get:
+      tags: [Rules]
+      summary: Get public tournament rules
+      operationId: getPublicRules
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Rules.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+
+  /public/tournaments/{tournamentId}/registrations/settings:
+    get:
+      tags: [Registrations]
+      summary: Get public registration settings
+      operationId: getPublicRegistrationSettings
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Registration settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationSettings'
+
+  /public/tournaments/{tournamentId}/categories/{categoryId}/registrations:
+    post:
+      tags: [Registrations]
+      summary: Submit a public registration
+      operationId: addPublicRegistration
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/categoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        '201':
+          description: Registration submitted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ── Tournaments (authenticated) ───────────────────────────────────────────────
+
+  /tournaments:
+    post:
+      tags: [Tournaments]
+      summary: Create tournament
+      operationId: createTournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TournamentRequest'
+      responses:
+        '201':
+          description: Tournament created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /tournaments/{tournamentId}:
+    get:
+      tags: [Tournaments]
+      summary: Get tournament (authenticated)
+      operationId: getTournament
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Tournament.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Tournaments]
+      summary: Update tournament
+      operationId: updateTournament
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TournamentRequest'
+      responses:
+        '200':
+          description: Tournament updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Tournaments]
+      summary: Delete tournament
+      operationId: deleteTournament
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '204':
+          description: Tournament deleted.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ── Competitors ───────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/competitors:
+    get:
+      tags: [Competitors]
+      summary: List competitors
+      operationId: listCompetitors
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Competitors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Competitor'
+    post:
+      tags: [Competitors]
+      summary: Add competitor
+      operationId: addCompetitor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompetitorRequest'
+      responses:
+        '201':
+          description: Competitor added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Competitor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /tournaments/{tournamentId}/competitors/{competitorId}:
+    get:
+      tags: [Competitors]
+      summary: Get competitor
+      operationId: getCompetitor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/competitorId'
+      responses:
+        '200':
+          description: Competitor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Competitor'
+    put:
+      tags: [Competitors]
+      summary: Update competitor
+      operationId: updateCompetitor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/competitorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompetitorRequest'
+      responses:
+        '200':
+          description: Competitor updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Competitor'
+    delete:
+      tags: [Competitors]
+      summary: Remove competitor
+      operationId: deleteCompetitor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/competitorId'
+      responses:
+        '204':
+          description: Competitor removed.
+
+  /tournaments/{tournamentId}/competitors/{competitorOneId}/{competitorTwoId}:
+    put:
+      tags: [Competitors]
+      summary: Swap two competitors
+      operationId: swapCompetitors
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - name: competitorOneId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: competitorTwoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Competitors swapped.
+
+  # ── Sponsors ──────────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/sponsors:
+    get:
+      tags: [Sponsors]
+      summary: List sponsors
+      operationId: listSponsors
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Sponsors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sponsor'
+    post:
+      tags: [Sponsors]
+      summary: Add sponsor
+      operationId: addSponsor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SponsorRequest'
+      responses:
+        '201':
+          description: Sponsor added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sponsor'
+
+  /tournaments/{tournamentId}/sponsors/{sponsorId}:
+    put:
+      tags: [Sponsors]
+      summary: Update sponsor
+      operationId: updateSponsor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/sponsorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SponsorRequest'
+      responses:
+        '200':
+          description: Sponsor updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sponsor'
+    delete:
+      tags: [Sponsors]
+      summary: Remove sponsor
+      operationId: deleteSponsor
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/sponsorId'
+      responses:
+        '204':
+          description: Sponsor removed.
+
+  # ── Locker Rooms ──────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/lockerrooms:
+    post:
+      tags: [LockerRooms]
+      summary: Add locker room
+      operationId: addLockerRoom
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockerRoomRequest'
+      responses:
+        '201':
+          description: Locker room added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LockerRoom'
+
+  /tournaments/{tournamentId}/lockerrooms/{lockerRoomId}:
+    put:
+      tags: [LockerRooms]
+      summary: Update locker room
+      operationId: updateLockerRoom
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/lockerRoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockerRoomRequest'
+      responses:
+        '200':
+          description: Locker room updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LockerRoom'
+    delete:
+      tags: [LockerRooms]
+      summary: Remove locker room
+      operationId: deleteLockerRoom
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/lockerRoomId'
+      responses:
+        '204':
+          description: Locker room removed.
+
+  /tournaments/{tournamentId}/lockerrooms/{lockerRoomId}/synccompetitors:
+    post:
+      tags: [LockerRooms]
+      summary: Sync competitors assigned to locker room
+      operationId: syncLockerRoomCompetitors
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/lockerRoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                competitorIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Competitors synced.
+
+  # ── Recesses ──────────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/recesses:
+    post:
+      tags: [Recesses]
+      summary: Add recess
+      operationId: addRecess
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecessRequest'
+      responses:
+        '201':
+          description: Recess added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recess'
+
+  /tournaments/{tournamentId}/recesses/{recessId}:
+    delete:
+      tags: [Recesses]
+      summary: Remove recess
+      operationId: deleteRecess
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/recessId'
+      responses:
+        '204':
+          description: Recess removed.
+
+  # ── Rules ─────────────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/rules:
+    get:
+      tags: [Rules]
+      summary: List rules
+      operationId: listRules
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Rules.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+    post:
+      tags: [Rules]
+      summary: Add rule
+      operationId: addRule
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleRequest'
+      responses:
+        '201':
+          description: Rule added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+
+  /tournaments/{tournamentId}/rules/{ruleId}:
+    put:
+      tags: [Rules]
+      summary: Update rule
+      operationId: updateRule
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/ruleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleRequest'
+      responses:
+        '200':
+          description: Rule updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+    delete:
+      tags: [Rules]
+      summary: Remove rule
+      operationId: deleteRule
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/ruleId'
+      responses:
+        '204':
+          description: Rule removed.
+
+  /tournaments/{tournamentId}/rules/{ruleId}/priorityup:
+    post:
+      tags: [Rules]
+      summary: Move rule up in priority
+      operationId: rulesPriorityUp
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/ruleId'
+      responses:
+        '200':
+          description: Priority updated.
+
+  # ── Tournament Users ──────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/users/{tournamentUserId}:
+    delete:
+      tags: [TournamentUsers]
+      summary: Remove user from tournament
+      operationId: removeTournamentUser
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/tournamentUserId'
+      responses:
+        '204':
+          description: User removed.
+
+  /tournaments/{tournamentId}/users/{tournamentUserId}/emailaddress:
+    get:
+      tags: [TournamentUsers]
+      summary: Get email address of tournament user
+      operationId: getTournamentUserEmail
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/tournamentUserId'
+      responses:
+        '200':
+          description: Email address.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emailaddress:
+                    type: string
+                    format: email
+
+  /tournaments/{tournamentId}/users/{tournamentUserId}/roles/{role}:
+    post:
+      tags: [TournamentUsers]
+      summary: Add role to tournament user
+      operationId: addTournamentUserRole
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/tournamentUserId'
+        - $ref: '#/components/parameters/role'
+      responses:
+        '200':
+          description: Role added.
+    delete:
+      tags: [TournamentUsers]
+      summary: Remove role from tournament user
+      operationId: removeTournamentUserRole
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/tournamentUserId'
+        - $ref: '#/components/parameters/role'
+      responses:
+        '204':
+          description: Role removed.
+
+  # ── Invitations ───────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/invitations:
+    get:
+      tags: [Invitations]
+      summary: List invitations
+      operationId: listInvitations
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Invitations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invitation'
+    post:
+      tags: [Invitations]
+      summary: Send invitation
+      operationId: addInvitation
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationRequest'
+      responses:
+        '201':
+          description: Invitation sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+
+  /tournaments/{tournamentId}/invitations/{invitationId}:
+    delete:
+      tags: [Invitations]
+      summary: Revoke invitation
+      operationId: deleteInvitation
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/invitationId'
+      responses:
+        '204':
+          description: Invitation revoked.
+
+  /tournaments/{tournamentId}/invitations/{invitationId}/roles/{role}:
+    post:
+      tags: [Invitations]
+      summary: Add role to invitation
+      operationId: addInvitationRole
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/invitationId'
+        - $ref: '#/components/parameters/role'
+      responses:
+        '200':
+          description: Role added.
+    delete:
+      tags: [Invitations]
+      summary: Remove role from invitation
+      operationId: removeInvitationRole
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/invitationId'
+        - $ref: '#/components/parameters/role'
+      responses:
+        '204':
+          description: Role removed.
+
+  # ── Registrations ─────────────────────────────────────────────────────────────
+
+  /tournaments/{tournamentId}/categories/{categoryId}/registrations:
+    get:
+      tags: [Registrations]
+      summary: List registrations for a category
+      operationId: listRegistrations
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/categoryId'
+      responses:
+        '200':
+          description: Registrations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Registration'
+    post:
+      tags: [Registrations]
+      summary: Add registration (admin)
+      operationId: addRegistration
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/categoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        '201':
+          description: Registration added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Registration'
+
+  /tournaments/{tournamentId}/categories/{categoryId}/registrations/{registrationId}:
+    get:
+      tags: [Registrations]
+      summary: Get registration
+      operationId: getRegistration
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/categoryId'
+        - $ref: '#/components/parameters/registrationId'
+      responses:
+        '200':
+          description: Registration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Registration'
+    put:
+      tags: [Registrations]
+      summary: Update registration (accept / decline)
+      operationId: updateRegistration
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/categoryId'
+        - $ref: '#/components/parameters/registrationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationUpdateRequest'
+      responses:
+        '200':
+          description: Registration updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Registration'
+    delete:
+      tags: [Registrations]
+      summary: Delete registration
+      operationId: deleteRegistration
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+        - $ref: '#/components/parameters/categoryId'
+        - $ref: '#/components/parameters/registrationId'
+      responses:
+        '204':
+          description: Registration deleted.
+
+  /tournaments/{tournamentId}/registrations/settings:
+    get:
+      tags: [Registrations]
+      summary: Get registration settings
+      operationId: getRegistrationSettings
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      responses:
+        '200':
+          description: Registration settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationSettings'
+    put:
+      tags: [Registrations]
+      summary: Update registration settings
+      operationId: updateRegistrationSettings
+      parameters:
+        - $ref: '#/components/parameters/tournamentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationSettingsRequest'
+      responses:
+        '200':
+          description: Settings updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationSettings'
+
+# ── Components ────────────────────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+    tournamentId:
+      name: tournamentId
+      in: path
+      required: true
+      schema:
+        type: integer
+    competitorId:
+      name: competitorId
+      in: path
+      required: true
+      schema:
+        type: integer
+    sponsorId:
+      name: sponsorId
+      in: path
+      required: true
+      schema:
+        type: integer
+    lockerRoomId:
+      name: lockerRoomId
+      in: path
+      required: true
+      schema:
+        type: integer
+    recessId:
+      name: recessId
+      in: path
+      required: true
+      schema:
+        type: integer
+    ruleId:
+      name: ruleId
+      in: path
+      required: true
+      schema:
+        type: integer
+    tournamentUserId:
+      name: tournamentUserId
+      in: path
+      required: true
+      schema:
+        type: integer
+    invitationId:
+      name: invitationId
+      in: path
+      required: true
+      schema:
+        type: integer
+    categoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: integer
+    registrationId:
+      name: registrationId
+      in: path
+      required: true
+      schema:
+        type: integer
+    paymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema:
+        type: string
+    code:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+    role:
+      name: role
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  responses:
+    BadRequest:
+      description: Invalid request payload.
+    Unauthorized:
+      description: Missing or invalid authentication.
+    Forbidden:
+      description: Insufficient permissions.
+    NotFound:
+      description: Resource not found.
+
+  schemas:
+
+    # ── Auth ───────────────────────────────────────────────────────────────────
+
+    RegisterRequest:
+      type: object
+      required: [emailaddress, password]
+      properties:
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [emailaddress, password]
+      properties:
+        emailaddress:
+          type: string
+          format: email
+        password:
+          type: string
+
+    ChangePasswordRequest:
+      type: object
+      required: [emailaddress, password, token]
+      properties:
+        emailaddress:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        token:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        userId:
+          type: integer
+
+    # ── User ───────────────────────────────────────────────────────────────────
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 15
+          nullable: true
+        validated:
+          type: boolean
+        nrOfCredits:
+          type: integer
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 15
+          nullable: true
+
+    # ── Tournament ─────────────────────────────────────────────────────────────
+
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: integer
+        createdDateTime:
+          type: string
+          format: date-time
+        startEditMode:
+          type: string
+          enum: [EditMode, ReadMode]
+        public:
+          type: boolean
+        example:
+          type: boolean
+        intro:
+          type: string
+          maxLength: 400
+        location:
+          type: string
+          maxLength: 80
+          nullable: true
+        logoExtension:
+          type: string
+          maxLength: 10
+          nullable: true
+        theme:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    TournamentRequest:
+      type: object
+      required: [intro]
+      properties:
+        intro:
+          type: string
+          maxLength: 400
+        location:
+          type: string
+          maxLength: 80
+          nullable: true
+        public:
+          type: boolean
+        theme:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    # ── Competitor ─────────────────────────────────────────────────────────────
+
+    Competitor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 30
+        present:
+          type: boolean
+        logoExtension:
+          type: string
+          maxLength: 10
+          nullable: true
+        publicInfo:
+          type: string
+          maxLength: 200
+          nullable: true
+        privateInfo:
+          type: string
+          maxLength: 200
+          nullable: true
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+          nullable: true
+        telephone:
+          type: string
+          maxLength: 15
+          nullable: true
+
+    CompetitorRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 30
+        present:
+          type: boolean
+        publicInfo:
+          type: string
+          maxLength: 200
+          nullable: true
+        privateInfo:
+          type: string
+          maxLength: 200
+          nullable: true
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+          nullable: true
+        telephone:
+          type: string
+          maxLength: 15
+          nullable: true
+
+    # ── Sponsor ────────────────────────────────────────────────────────────────
+
+    Sponsor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 30
+        url:
+          type: string
+          maxLength: 100
+          nullable: true
+        logoExtension:
+          type: string
+          maxLength: 10
+          nullable: true
+        screenNr:
+          type: integer
+          default: 1
+
+    SponsorRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 30
+        url:
+          type: string
+          maxLength: 100
+          nullable: true
+        screenNr:
+          type: integer
+          default: 1
+
+    # ── LockerRoom ─────────────────────────────────────────────────────────────
+
+    LockerRoom:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 6
+        competitors:
+          type: array
+          items:
+            type: integer
+          description: Competitor IDs assigned to this locker room.
+
+    LockerRoomRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 6
+
+    # ── Recess ─────────────────────────────────────────────────────────────────
+
+    Recess:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 30
+        startDateTime:
+          type: string
+          format: date-time
+        endDateTime:
+          type: string
+          format: date-time
+
+    RecessRequest:
+      type: object
+      required: [name, startDateTime, endDateTime]
+      properties:
+        name:
+          type: string
+          maxLength: 30
+        startDateTime:
+          type: string
+          format: date-time
+        endDateTime:
+          type: string
+          format: date-time
+
+    # ── Rule ───────────────────────────────────────────────────────────────────
+
+    Rule:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+          maxLength: 80
+        priority:
+          type: integer
+
+    RuleRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          maxLength: 80
+
+    # ── TournamentUser ─────────────────────────────────────────────────────────
+
+    TournamentUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        roles:
+          type: integer
+          description: Bitmask of roles.
+
+    # ── Invitation ─────────────────────────────────────────────────────────────
+
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: integer
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        roles:
+          type: integer
+          description: Bitmask of roles.
+        createdDateTime:
+          type: string
+          format: date-time
+
+    InvitationRequest:
+      type: object
+      required: [emailaddress, roles]
+      properties:
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        roles:
+          type: integer
+
+    # ── Registration ───────────────────────────────────────────────────────────
+
+    Registration:
+      type: object
+      properties:
+        id:
+          type: integer
+        categoryNr:
+          type: integer
+        name:
+          type: string
+          maxLength: 30
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        telephone:
+          type: string
+          maxLength: 15
+        info:
+          type: string
+          maxLength: 200
+          nullable: true
+        state:
+          type: string
+          enum: [Pending, Accepted, Declined]
+        competitorId:
+          type: integer
+          nullable: true
+
+    RegistrationRequest:
+      type: object
+      required: [name, emailaddress, telephone]
+      properties:
+        name:
+          type: string
+          maxLength: 30
+        emailaddress:
+          type: string
+          format: email
+          maxLength: 100
+        telephone:
+          type: string
+          maxLength: 15
+        info:
+          type: string
+          maxLength: 200
+          nullable: true
+
+    RegistrationUpdateRequest:
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [Pending, Accepted, Declined]
+        competitorId:
+          type: integer
+          nullable: true
+
+    RegistrationSettings:
+      type: object
+      properties:
+        id:
+          type: integer
+        enabled:
+          type: boolean
+        endDateTime:
+          type: string
+          format: date-time
+        remark:
+          type: string
+          maxLength: 200
+          nullable: true
+        mailAlert:
+          type: boolean
+        acceptText:
+          type: string
+          nullable: true
+        acceptAsSubstituteText:
+          type: string
+          nullable: true
+        declineText:
+          type: string
+          nullable: true
+
+    RegistrationSettingsRequest:
+      type: object
+      required: [enabled, endDateTime, mailAlert]
+      properties:
+        enabled:
+          type: boolean
+        endDateTime:
+          type: string
+          format: date-time
+        remark:
+          type: string
+          maxLength: 200
+          nullable: true
+        mailAlert:
+          type: boolean
+        acceptText:
+          type: string
+          nullable: true
+        acceptAsSubstituteText:
+          type: string
+          nullable: true
+        declineText:
+          type: string
+          nullable: true
+
+    # ── Payment ────────────────────────────────────────────────────────────────
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        paymentId:
+          type: string
+          maxLength: 30
+          nullable: true
+        method:
+          type: string
+          maxLength: 30
+        amount:
+          type: number
+          format: decimal
+        state:
+          type: string
+          enum: [Open, Pending, Authorized, Expired, Failed, Canceled, Paid]
+        updatedAt:
+          type: string
+          format: date-time
+
+    BuyCreditsRequest:
+      type: object
+      required: [method, amount]
+      properties:
+        method:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        issuer:
+          type: string
+          nullable: true
+          description: Required for iDEAL payments.
+
+    IDealIssuer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
