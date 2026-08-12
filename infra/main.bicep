@@ -39,17 +39,17 @@ module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
 
 // ── Backend App Service ───────────────────────────────────────────────────────
 
-module modAppServiceBackend 'modules/appService.bicep' = {
+module modAppServiceBackend 'br/modules:app-service:latest' = {
   name: 'modAppServiceBackend'
   params: {
     appServiceName: appServiceBackendName
     location: location
     appServicePlanId: modAppServicePlan.outputs.appServicePlanId
     applicationInsightsName: applicationInsightsName
-    coreResourceGroupName: coreResourceGroupName
     linuxFxVersion: appServiceBackend.linuxFxVersion
     additionEnvironmentVariables: []
-    restrictToApim: true
+    appKind: appServiceBackend.kind
+    // restrictToApim: true
   }
 }
 

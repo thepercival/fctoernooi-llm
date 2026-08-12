@@ -52,13 +52,14 @@
         },
         "applicationInsights": {
             "value": {
-                "name": "appi-cdk"
+                "name": "appins-cdk"
             }
         },
         "appServiceBackend": {
             "value": {
                 "name": "as-fctoernooi-api",
-                "linuxFxVersion": "NODE|22-lts"
+                "linuxFxVersion": "NODE|22-lts",
+                "kind": "app,linux"
             }
         },
         "apiBackend": {
