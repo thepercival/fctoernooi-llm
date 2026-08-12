@@ -90,10 +90,10 @@ module modOpenaiProject 'br/modules:openai-project:latest' = {
   name: 'modOpenaiProject'
   params: {
     accountName: openaiAccount.name
-    projectName: openaiProject.name
-    projectDescription: openaiProject.description
-    projectLocation: openaiProject.location
-    projectRoleAssignments: openaiProject.roleAssignments
+    name: openaiProject.name
+    description: openaiProject.description
+    location: openaiProject.location
+    roleAssignments: openaiProject.roleAssignments
   }
 }
 
