@@ -8,6 +8,8 @@ param additionEnvironmentVariables array
 param startupCommand string = 'node dist/server.js'
 // When true, only APIM outbound IPs are allowed; all other public traffic is denied
 param restrictToApim bool = false
+// Requires Standard SKU or higher — only enable on prd
+param withStagingSlot bool
 
 resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: applicationInsightsName
@@ -65,7 +67,8 @@ resource resAppService 'Microsoft.Web/sites@2025-03-01' = {
   }
 }
 
-resource resWebAppSlot 'Microsoft.Web/sites/slots@2025-03-01' = {
+// staging slot requires Standard SKU or higher
+resource resWebAppSlot 'Microsoft.Web/sites/slots@2025-03-01' = if (withStagingSlot) {
   parent: resAppService
   name: 'staging'
   location: location

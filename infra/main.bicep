@@ -31,8 +31,8 @@ module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
   params: {
     planName: appServicePlanName
     location: location
-    skuName: appServicePlan.sku.name
-    skuTier: appServicePlan.sku.tier
+    skuName: appServicePlan.sku[environment].name
+    skuTier: appServicePlan.sku[environment].tier
     loganalyticsWorkspaceId: resLogAnalyticsWorkspace.id
   }
 }
@@ -98,7 +98,7 @@ module modOpenaiProject 'br/modules:openai-project:latest' = {
     accountName: openaiAccount.name
     name: openaiProject.name
     description: openaiProject.description
-    location: openaiProject.location
+    location: location
     roleAssignments: openaiProject.roleAssignments
   }
 }

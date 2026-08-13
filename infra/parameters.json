@@ -44,9 +44,21 @@
             "value": {
                 "name": "asp-fctoernooi",
                 "sku": {
-                    "name": "B2",
-                    "tier": "Basic",
-                    "capacity": 1
+                    "dev": {
+                        "name": "B2",
+                        "tier": "Basic",
+                        "capacity": 1
+                    },
+                    "acc": {
+                        "name": "B2",
+                        "tier": "Basic",
+                        "capacity": 1
+                    },
+                    "prd": {
+                        "name": "S1",
+                        "tier": "Standard",
+                        "capacity": 1
+                    }
                 }
             }
         },
