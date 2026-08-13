@@ -55,7 +55,7 @@ module modAppServiceBackend 'br/modules:app-service:latest' = {
     appServicePlanId: modAppServicePlan.outputs.appServicePlanId
     appInsightsConnectionString: resAppInsights.properties.ConnectionString
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
-    withStagingSlot: appServiceBackend.sku[environment].tier == 'Standard' ? true : false
+    withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
     // restrictToApim: true
   }
 }
