@@ -48,14 +48,14 @@ module modAppServiceBackend 'br/modules:app-service:latest' = {
   name: 'modAppServiceBackend'
   params: {
     appServiceName: appServiceBackendName
+    appKind: appServiceBackend.kind
     location: location
-    appServicePlanId: modAppServicePlan.outputs.appServicePlanId    
-    withStagingSlot: appServiceBackend.sku[environment].tier == 'Standard' ? true : false
+    additionEnvironmentVariables: []
+    linuxFxVersion: appServiceBackend.linuxFxVersion
+    appServicePlanId: modAppServicePlan.outputs.appServicePlanId
     appInsightsConnectionString: resAppInsights.properties.ConnectionString
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
-    linuxFxVersion: appServiceBackend.linuxFxVersion
-    additionEnvironmentVariables: []
-    appKind: appServiceBackend.kind
+    withStagingSlot: appServiceBackend.sku[environment].tier == 'Standard' ? true : false
     // restrictToApim: true
   }
 }
