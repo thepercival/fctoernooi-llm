@@ -50,6 +50,7 @@ module modAppServiceBackend 'br/modules:app-service:latest' = {
     appServiceName: appServiceBackendName
     location: location
     appServicePlanId: modAppServicePlan.outputs.appServicePlanId    
+    withStagingSlot: appServiceBackend.sku[environment].tier == 'Standard' ? true : false
     appInsightsConnectionString: resAppInsights.properties.ConnectionString
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
     linuxFxVersion: appServiceBackend.linuxFxVersion
