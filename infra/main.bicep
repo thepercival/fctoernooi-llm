@@ -95,6 +95,7 @@ module modAppServiceBackend 'br/modules:app-service:latest' = {
 
 module modOpenaiProject 'br/modules:openai-project:latest' = {
   name: 'modOpenaiProject'
+  scope: resourceGroup(coreResourceGroupName)
   params: {
     accountName: openaiAccount.name
     name: openaiProject.name
