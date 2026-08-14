@@ -9,13 +9,17 @@
         },
         "openaiAccount": {
             "value": {
-                "name": "aoai-cdk",
-                "deployOnEnvironment": "dev"
+                "name": "ais-cdk"
             }
         },
         "openaiProject": {
             "value": {
-                "name": "aoai-project-fctoernooi",
+                "name": "aisp-fctoernooi",
+                "deploy": {
+                    "dev": true,
+                    "acc": true,
+                    "prd": true
+                },
                 "description": "For Machine Learning in FCToernooi",
                 "roleAssignments": [
                     {
@@ -70,7 +74,7 @@
         "appServiceBackend": {
             "value": {
                 "name": "as-fctoernooi-api",
-                "linuxFxVersion": "NODE|22-lts",
+                "linuxFxVersion": "NODE|24-lts",
                 "kind": "app,linux"
             }
         },

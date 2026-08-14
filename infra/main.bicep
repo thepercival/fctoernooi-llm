@@ -93,12 +93,12 @@ module modAppServiceBackend 'br/modules:app-service:latest' = {
 // OpenAI
 
 
-module modOpenaiProject 'br/modules:openai-project:latest' = {
+module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.deploy[environment]) {
   name: 'modOpenaiProject'
   scope: resourceGroup(coreResourceGroupName)
   params: {
-    accountName: openaiAccount.name
-    name: openaiProject.name
+    accountName: '${openaiAccount.name}-{environment}'
+    name: '${openaiProject.name}-{environment}'
     description: openaiProject.description
     location: location
     roleAssignments: openaiProject.roleAssignments
