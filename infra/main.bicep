@@ -85,7 +85,6 @@ module modAppServiceBackend 'br/modules:app-service:latest' = {
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
     withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
     restrictToApim: true
-    openapiLink: apiBackend.openapiLink
   }
 }
 
