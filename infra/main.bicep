@@ -184,12 +184,13 @@ module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.de
 
 // ── APIM: backend REST API ────────────────────────────────────────────────────
 
-module modApimApiBackend 'modules/backend/api.bicep' = {
-  name: 'modApimApiBackend'
+module modApimApi 'br/modules:apim-api:latest' = {
+  name: 'modApimApi'
   scope: resourceGroup(coreResourceGroupName)
   params: {
     apiManagementName: apimName
     api: apiBackend
+    openapiLink: apiBackend.openapiLink
     backend: {
       name: apiBackend.backendName
       description: apiBackend.backendDescription
