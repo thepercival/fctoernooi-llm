@@ -81,6 +81,7 @@
         "apiBackend": {
             "value": {
                 "name": "fctoernooi-api",
+                "openapiLink": "https://github.com/thepercival/fctoernooi-llm/blob/feature/dev-deploy-on-push/infra/openapi.yaml",
                 "version": "v1",
                 "backendName": "fctoernooi-api-backend",
                 "backendDescription": "FCToernooi REST API App Service",
@@ -114,6 +115,12 @@
                         "Developers"
                     ]
                 }
+            }
+        },
+        "cosmosDb": {
+            "value": {
+                "name": "cosmos-fctoernooi",
+                "databaseName": "fctoernooi"
             }
         }
     }

@@ -14,11 +14,13 @@ param apiBackend object
 param openaiAccount object
 param openaiProject object
 // param apiFrontend object
+param cosmosDb object
 
 var apimName = '${apim.name}-${environment}'
 var appServicePlanName = '${appServicePlan.name}-${environment}'
 var applicationInsightsName = '${applicationInsights.name}-${environment}'
 var appServiceBackendName = '${appServiceBackend.name}-${environment}'
+var cosmosDbAccountName = '${cosmosDb.name}-${environment}'
 // var appServiceFrontendName = '${appServiceFrontend.name}-${environment}'
 
 resource resLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
@@ -37,6 +39,18 @@ module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
   }
 }
 
+// ── Cosmos DB (MongoDB serverless) ───────────────────────────────────────────
+
+module modCosmosDb 'br/modules:cosmos-db:latest' = {
+  name: 'modCosmosDb'
+  params: {
+    accountName: cosmosDbAccountName
+    location: location
+    databaseName: cosmosDb.databaseName
+    loganalyticsWorkspaceId: resLogAnalyticsWorkspace.id
+  }
+}
+
 // ── Backend App Service ───────────────────────────────────────────────────────
 
 resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
@@ -44,19 +58,34 @@ resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   scope: resourceGroup(coreResourceGroupName)
 }
 
+resource resCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
+  name: cosmosDbAccountName
+}
+var cosmossDbConnectionString string = resCosmosDb.listConnectionStrings().connectionStrings[0].connectionString
+
 module modAppServiceBackend 'br/modules:app-service:latest' = {
   name: 'modAppServiceBackend'
   params: {
     appServiceName: appServiceBackendName
     appKind: appServiceBackend.kind
     location: location
-    additionEnvironmentVariables: []
+    additionEnvironmentVariables: [
+      {
+        name: 'MONGODB_URI'
+        value: cosmossDbConnectionString
+      }
+      {
+        name: 'MONGODB_DB'
+        value: cosmosDb.databaseName
+      }
+    ]
     linuxFxVersion: appServiceBackend.linuxFxVersion
     appServicePlanId: modAppServicePlan.outputs.appServicePlanId
     appInsightsConnectionString: resAppInsights.properties.ConnectionString
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
     withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
-    // restrictToApim: true
+    restrictToApim: true
+    openapiLink: apiBackend.openapiLink
   }
 }
 
