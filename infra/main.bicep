@@ -97,8 +97,8 @@ module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.de
   name: 'modOpenaiProject'
   scope: resourceGroup(coreResourceGroupName)
   params: {
-    accountName: '${openaiAccount.name}-{environment}'
-    name: '${openaiProject.name}-{environment}'
+    accountName: '${openaiAccount.name}-${environment}'
+    name: '${openaiProject.name}-${environment}'
     description: openaiProject.description
     location: location
     roleAssignments: openaiProject.roleAssignments
