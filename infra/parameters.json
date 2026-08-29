@@ -7,6 +7,11 @@
                 "name": "lw-core"
             }
         },
+        "keyVault": {
+            "value": {
+                "name": "kv-cdk-v2"
+            }
+        },
         "openaiAccount": {
             "value": {
                 "name": "ais-cdk"
@@ -117,10 +122,14 @@
                 }
             }
         },
-        "cosmosDb": {
+        "database": {
             "value": {
-                "name": "cosmos-fctoernooi",
-                "databaseName": "fctoernooi"
+                "host": "db.cdkdev.nl",
+                "name": {
+                    "dev": "fctoernooi-dev",
+                    "acc": "fctoernooi-acc",
+                    "prd": "fctoernooi"
+                }
             }
         }
     }

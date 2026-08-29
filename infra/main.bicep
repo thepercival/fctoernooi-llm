@@ -4,6 +4,7 @@ param environment string
 param coreResourceGroupName string
 
 param logAnalyticsWorkspace object
+param keyVault object
 param apim object
 param appServicePlan object
 param applicationInsights object
@@ -14,13 +15,15 @@ param apiBackend object
 param openaiAccount object
 param openaiProject object
 // param apiFrontend object
-param cosmosDb object
+param database object
 
 var apimName = '${apim.name}-${environment}'
 var appServicePlanName = '${appServicePlan.name}-${environment}'
 var applicationInsightsName = '${applicationInsights.name}-${environment}'
 var appServiceBackendName = '${appServiceBackend.name}-${environment}'
-var cosmosDbAccountName = '${cosmosDb.name}-${environment}'
+// var cosmosDbAccountName = '${cosmosDb.name}-${environment}'
+var keyVaultName = '${keyVault.name}-${environment}'
+var dbName = database.name[environment]
 // var appServiceFrontendName = '${appServiceFrontend.name}-${environment}'
 
 resource resLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
@@ -39,17 +42,26 @@ module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
   }
 }
 
+resource resKeyVault 'Microsoft.KeyVault/vaults@2024-06-01-preview' existing = {
+  name: keyVaultName
+  scope: resourceGroup(coreResourceGroupName)
+}
+
+
+
+
 // ── Cosmos DB (MongoDB serverless) ───────────────────────────────────────────
 
-module modCosmosDb 'br/modules:cosmos-db:latest' = {
-  name: 'modCosmosDb'
-  params: {
-    accountName: cosmosDbAccountName
-    location: location
-    databaseName: cosmosDb.databaseName
-    loganalyticsWorkspaceId: resLogAnalyticsWorkspace.id
-  }
-}
+// VPS IN USE
+// module modCosmosDb 'br/modules:cosmos-db:latest' = {
+//   name: 'modCosmosDb'
+//   params: {
+//     accountName: cosmosDbAccountName
+//     location: location
+//     databaseName: cosmosDb.databaseName
+//     loganalyticsWorkspaceId: resLogAnalyticsWorkspace.id
+//   }
+// }
 
 // ── Backend App Service ───────────────────────────────────────────────────────
 
@@ -58,33 +70,26 @@ resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   scope: resourceGroup(coreResourceGroupName)
 }
 
-resource resCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
-  name: cosmosDbAccountName
-}
-var cosmossDbConnectionString string = resCosmosDb.listConnectionStrings().connectionStrings[0].connectionString
 
-module modAppServiceBackend 'br/modules:app-service:latest' = {
+// resource resCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
+//   name: cosmosDbAccountName
+// }
+
+module modAppServiceBackend 'modules/app-service.bicep' = {
   name: 'modAppServiceBackend'
   params: {
     appServiceName: appServiceBackendName
-    appKind: appServiceBackend.kind
     location: location
-    additionEnvironmentVariables: [
-      {
-        name: 'MONGODB_URI'
-        value: cosmossDbConnectionString
-      }
-      {
-        name: 'MONGODB_DB'
-        value: cosmosDb.databaseName
-      }
-    ]
+    appKind: appServiceBackend.kind
     linuxFxVersion: appServiceBackend.linuxFxVersion
     appServicePlanId: modAppServicePlan.outputs.appServicePlanId
     appInsightsConnectionString: resAppInsights.properties.ConnectionString
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
     withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
     restrictToApim: true
+    dbHost: database.host
+    dbName: dbName
+    dbPassword: resKeyVault.getSecret('${dbName}-db-password')
   }
 }
 
