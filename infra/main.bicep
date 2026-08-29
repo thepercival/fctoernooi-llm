@@ -42,13 +42,10 @@ module modAppServicePlan 'br/modules:app-serviceplan:latest' = {
   }
 }
 
-resource resKeyVault 'Microsoft.KeyVault/vaults@2024-06-01-preview' existing = {
+resource resKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
   scope: resourceGroup(coreResourceGroupName)
 }
-
-
-
 
 // ── Cosmos DB (MongoDB serverless) ───────────────────────────────────────────
 

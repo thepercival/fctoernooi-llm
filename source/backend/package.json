@@ -9,7 +9,7 @@
   "scripts": {
     "db:start": "docker compose -f ../../infra/mongodb/docker-compose.yml up -d",
     "db:stop": "docker compose -f ../../infra/mongodb/docker-compose.yml down",
-    "generate": "openapi-typescript ../../infra/modules/backend/openapi.yaml -o src/openapi.gen.ts",
+    "generate": "openapi-typescript ../../infra/openapi.yaml -o src/openapi.gen.ts",
     "build": "npm run generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "npm run generate && tsx src/server.ts"

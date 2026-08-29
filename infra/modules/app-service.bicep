@@ -15,7 +15,7 @@ param dbPassword string
 
 var mongoDbConnString string = 'mongodb://${dbName}:${dbPassword}@${dbHost}:${dbPort}/${dbName}?authSource=${dbName}&tls=true'
 
-module modAppServiced 'br/modules:app-service:latest' = {
+module modAppService 'br/modules:app-service:latest' = {
   name: 'modAppService'
   params: {
     appServiceName: appServiceName
@@ -35,3 +35,6 @@ module modAppServiced 'br/modules:app-service:latest' = {
     restrictToApim: restrictToApim
   }
 }
+
+output principalId string = modAppService.outputs.principalId
+output url string = modAppService.outputs.url
