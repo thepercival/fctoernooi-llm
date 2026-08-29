@@ -36,5 +36,6 @@ module modAppService 'br/modules:app-service:latest' = {
   }
 }
 
+
 output principalId string = modAppService.outputs.principalId
 output url string = modAppService.outputs.url
