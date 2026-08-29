@@ -72,6 +72,7 @@ resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
 //   name: cosmosDbAccountName
 // }
 
+var dbPasswordSecretName = '${dbName}-db-password'
 module modAppServiceBackend 'modules/app-service.bicep' = {
   name: 'modAppServiceBackend'
   params: {
@@ -86,7 +87,7 @@ module modAppServiceBackend 'modules/app-service.bicep' = {
     restrictToApim: true
     dbHost: database.host
     dbName: dbName
-    dbPassword: resKeyVault.getSecret('${dbName}-db-password')
+    dbPassword: resKeyVault.getSecret(dbPasswordSecretName)
   }
 }
 
