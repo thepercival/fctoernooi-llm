@@ -9,7 +9,7 @@
         },
         "keyVault": {
             "value": {
-                "name": "kv-cdk-v2"
+                "name": "kv-cdk-v3"
             }
         },
         "openaiAccount": {
