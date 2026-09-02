@@ -64,9 +64,11 @@ export class MongoDb {
   static async connect(): Promise<MongoDb> {
     const uri = process.env.MONGODB_URI;
     if (!uri) throw new Error('MONGODB_URI is not set.');
+    const dbName = process.env.MONGODB_DB;
+    if (!dbName) throw new Error('MONGODB_DB is not set.');
     const client = new MongoClient(uri);
     await client.connect();
-    const instance = new MongoDb(client.db(process.env.MONGODB_DB ?? 'fctoernooi'));
+    const instance = new MongoDb(client.db(dbName));
     // TODO: run migrate-mongo migrations here before ensureIndexes (add migrate-mongo package, call up())
     await instance.ensureIndexes();
     return instance;

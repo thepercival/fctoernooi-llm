@@ -25,6 +25,10 @@ module modAppService 'br/modules:app-service:latest' = {
         name: 'MONGODB_URI'
         value: mongoDbConnString
       }
+      {
+        name: 'MONGODB_DB'
+        value: dbName
+      }
     ]
     linuxFxVersion: linuxFxVersion
     appServicePlanId: appServicePlanId
