@@ -2,6 +2,7 @@ param location string = resourceGroup().location
 @minLength(3)
 param environment string
 param coreResourceGroupName string
+param entraAdminPrincipalId string
 
 param logAnalyticsWorkspace object
 param keyVault object
@@ -122,9 +123,19 @@ module modAppServiceBackend 'modules/app-service.bicep' = {
 // ///
 
 
+// 
 
 // OpenAI
 
+var principalIdsByVariableName = {
+  entraAdminPrincipalId: entraAdminPrincipalId
+}
+
+var projectRoleAssignments = map(openaiProject.roleAssignments, roleAssignment => {
+    projectPrincipalId: principalIdsByVariableName[roleAssignment.principalIdVarName]
+    projectPrincipalType: roleAssignment.principalType
+    roleDefinitionId: roleAssignment.roleDefinitionId
+})
 
 module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.deploy[environment]) {
   name: 'modOpenaiProject'
@@ -134,9 +145,10 @@ module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.de
     name: '${openaiProject.name}-${environment}'
     description: openaiProject.description
     location: location
-    roleAssignments: openaiProject.roleAssignments
+    roleAssignments: projectRoleAssignments
   }
 }
+
 
 // ── Frontend App Service ──────────────────────────────────────────────────────
 
