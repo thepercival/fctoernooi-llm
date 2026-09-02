@@ -281,6 +281,31 @@ paths:
 
   # ── Tournaments (public) ─────────────────────────────────────────────────────
 
+  /public/shells:
+    get:
+      tags: [TournamentShells]
+      summary: List public tournament shells
+      description: Returns at most 100 public tournaments matching the supplied filters.
+      operationId: listPublicTournamentShells
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/shellStartDate'
+        - $ref: '#/components/parameters/shellEndDate'
+        - $ref: '#/components/parameters/shellName'
+        - $ref: '#/components/parameters/shellExample'
+      responses:
+        '200':
+          description: Public tournament shells.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/TournamentShell'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /public/tournaments/{tournamentId}:
     get:
       tags: [Tournaments]
@@ -367,6 +392,54 @@ paths:
           $ref: '#/components/responses/BadRequest'
 
   # ── Tournaments (authenticated) ───────────────────────────────────────────────
+
+  /shells:
+    get:
+      tags: [TournamentShells]
+      summary: List public tournament shells as the authenticated user
+      description: Returns at most 100 public tournaments, including the authenticated user's roles.
+      operationId: listAuthenticatedTournamentShells
+      parameters:
+        - $ref: '#/components/parameters/shellStartDate'
+        - $ref: '#/components/parameters/shellEndDate'
+        - $ref: '#/components/parameters/shellName'
+        - $ref: '#/components/parameters/shellExample'
+      responses:
+        '200':
+          description: Public tournament shells with role information.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/TournamentShell'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /shellswithrole:
+    get:
+      tags: [TournamentShells]
+      summary: List tournament shells by user role
+      description: Returns non-example tournaments where the authenticated user has any role in the supplied bitmask.
+      operationId: listTournamentShellsByRole
+      parameters:
+        - $ref: '#/components/parameters/shellRoles'
+      responses:
+        '200':
+          description: Tournament shells matching the role filter.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TournamentShell'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
 
   /tournaments:
     post:
@@ -1160,6 +1233,39 @@ components:
       required: true
       schema:
         type: integer
+    shellStartDate:
+      name: startDate
+      in: query
+      description: Include tournaments starting at or after this date and time.
+      schema:
+        type: string
+        format: date-time
+    shellEndDate:
+      name: endDate
+      in: query
+      description: Include tournaments starting at or before this date and time.
+      schema:
+        type: string
+        format: date-time
+    shellName:
+      name: name
+      in: query
+      description: Case-sensitive partial tournament name match.
+      schema:
+        type: string
+    shellExample:
+      name: example
+      in: query
+      description: Filter by whether the tournament is an example tournament.
+      schema:
+        type: boolean
+    shellRoles:
+      name: roles
+      in: query
+      description: Role bitmask; tournaments matching any supplied role are returned.
+      schema:
+        type: integer
+        minimum: 0
 
   responses:
     BadRequest:
@@ -1170,6 +1276,8 @@ components:
       description: Insufficient permissions.
     NotFound:
       description: Resource not found.
+    UnprocessableEntity:
+      description: The supplied request parameters could not be processed.
 
   schemas:
 
@@ -1300,6 +1408,28 @@ components:
           type: object
           nullable: true
           additionalProperties: true
+
+    TournamentShell:
+      type: object
+      description: Lightweight tournament summary used in tournament selection lists.
+      required: [tournamentId, singleCustomSport, name, startDateTime, roles, public]
+      properties:
+        tournamentId:
+          type: integer
+        singleCustomSport:
+          type: integer
+          description: Custom sport ID, or 0 when the tournament has multiple sports.
+        name:
+          type: string
+          description: Tournament league name.
+        startDateTime:
+          type: string
+          format: date-time
+        roles:
+          type: integer
+          description: Role bitmask for the authenticated user; 0 for anonymous users or no roles.
+        public:
+          type: boolean
 
     # ── Competitor ─────────────────────────────────────────────────────────────
 
