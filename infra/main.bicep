@@ -137,6 +137,7 @@ var projectRoleAssignments = map(openaiProject.roleAssignments, roleAssignment =
     roleDefinitionId: roleAssignment.roleDefinitionId
 })
 
+
 module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.deploy[environment]) {
   name: 'modOpenaiProject'
   scope: resourceGroup(coreResourceGroupName)
