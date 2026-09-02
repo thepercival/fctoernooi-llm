@@ -50,6 +50,11 @@ resource resKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   scope: resourceGroup(coreResourceGroupName)
 }
 
+resource resApim 'Microsoft.ApiManagement/service@2024-05-01' existing = {
+  name: apimName
+  scope: resourceGroup(coreResourceGroupName)
+}
+
 // ── Cosmos DB (MongoDB serverless) ───────────────────────────────────────────
 
 // VPS IN USE
@@ -87,7 +92,7 @@ module modAppServiceBackend 'modules/app-service.bicep' = {
     appInsightsConnectionString: resAppInsights.properties.ConnectionString
     appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
     withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
-    restrictToApim: true
+    apimIpAddresses: resApim.properties.publicIPAddresses
     dbHost: database.host
     dbName: dbName
     dbPassword: resKeyVault.getSecret(dbPasswordSecretName)
