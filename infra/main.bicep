@@ -27,6 +27,7 @@ var keyVaultName = '${keyVault.name}-${environment}'
 var dbName = database.name[environment]
 // var appServiceFrontendName = '${appServiceFrontend.name}-${environment}'
 
+
 resource resLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
   name: '${logAnalyticsWorkspace.name}-${environment}'
   scope: resourceGroup(coreResourceGroupName)
