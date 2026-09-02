@@ -20,7 +20,7 @@ const PORT = Number(process.env.PORT ?? 8080);
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
 const JWT_EXPIRES_IN = '8h';
 const BCRYPT_ROUNDS = 10;
-const SPEC_PATH = path.join(__dirname, '../../../infra/modules/backend/openapi.yaml');
+const SPEC_PATH = path.join(__dirname, '../../../infra/openapi.yaml');
 
 // ── Request body type aliases (from generated spec) ───────────────────────────
 
@@ -52,6 +52,37 @@ function hasRole(tu: TournamentUserRecord, role: number): boolean { return (tu.r
 function stripSensitive(u: UserRecord): S['User'] & { id: number } {
   const { passwordHash: _p, validateToken: _v, forgetPasswordToken: _f, ...safe } = u;
   return safe;
+}
+
+type ShellFilters = { startDate?: unknown; endDate?: unknown; name?: unknown; example?: unknown };
+
+function matchesShellFilters(tournament: TournamentRecord, filters: ShellFilters): boolean {
+  const tournamentDate = Date.parse(tournament.createdDateTime);
+  const startDate = filters.startDate ? Date.parse(String(filters.startDate)) : null;
+  const endDate = filters.endDate ? Date.parse(String(filters.endDate)) : null;
+  const name = filters.name ? String(filters.name) : null;
+  const example = filters.example === undefined ? null : filters.example === true || filters.example === 'true' || filters.example === '1';
+
+  return (startDate === null || tournamentDate >= startDate)
+    && (endDate === null || tournamentDate <= endDate)
+    && (name === null || tournament.intro.includes(name))
+    && (example === null || tournament.example === example);
+}
+
+function toTournamentShell(tournament: TournamentRecord, roles = 0): S['TournamentShell'] {
+  return {
+    tournamentId: tournament.id,
+    singleCustomSport: 0,
+    name: tournament.intro,
+    startDateTime: tournament.createdDateTime,
+    roles,
+    public: tournament.public,
+  };
+}
+
+async function getRolesByTournament(db: MongoDb, userId: number): Promise<Map<number, number>> {
+  const tournamentUsers = await db.find<TournamentUserRecord>('tournamentUsers', { userId });
+  return new Map(tournamentUsers.map((tournamentUser) => [tournamentUser.tournamentId, tournamentUser.roles]));
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -122,6 +153,14 @@ function buildApp(db: MongoDb): express.Express {
     if (!user || user.forgetPasswordToken !== token) { res.status(400).json({ message: 'Invalid or expired reset token.' }); return; }
     await db.update<UserRecord>('users', user.id, { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS), forgetPasswordToken: null });
     res.status(200).end();
+  });
+
+  app.get('/public/shells', async (req, res) => {
+    const tournaments = await db.find<TournamentRecord>('tournaments', { public: true });
+    res.json(tournaments
+      .filter((tournament) => matchesShellFilters(tournament, req.query))
+      .slice(0, 100)
+      .map((tournament) => toTournamentShell(tournament)));
   });
 
   app.get('/public/tournaments/:tournamentId', async (req, res) => {
@@ -232,6 +271,28 @@ function buildApp(db: MongoDb): express.Express {
   });
 
   // ── /tournaments ──────────────────────────────────────────────────────────
+
+  app.get('/shells', async (req, res) => {
+    const [tournaments, rolesByTournament] = await Promise.all([
+      db.find<TournamentRecord>('tournaments', { public: true }),
+      getRolesByTournament(db, req.userId!),
+    ]);
+    res.json(tournaments
+      .filter((tournament) => matchesShellFilters(tournament, req.query))
+      .slice(0, 100)
+      .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
+  });
+
+  app.get('/shellswithrole', async (req, res) => {
+    const requestedRoles = Number(req.query.roles ?? 0);
+    const [tournaments, rolesByTournament] = await Promise.all([
+      db.find<TournamentRecord>('tournaments', { example: false }),
+      getRolesByTournament(db, req.userId!),
+    ]);
+    res.json(tournaments
+      .filter((tournament) => ((rolesByTournament.get(tournament.id) ?? 0) & requestedRoles) !== 0)
+      .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
+  });
 
   app.post('/tournaments', async (req, res) => {
     const tournament = await db.create<TournamentRecord>('tournaments', {

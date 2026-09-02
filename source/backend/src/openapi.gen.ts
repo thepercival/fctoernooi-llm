@@ -227,6 +227,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/shells": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List public tournament shells
+         * @description Returns at most 100 public tournaments matching the supplied filters.
+         */
+        get: operations["listPublicTournamentShells"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/tournaments/{tournamentId}": {
         parameters: {
             query?: never;
@@ -306,6 +326,46 @@ export interface paths {
         put?: never;
         /** Submit a public registration */
         post: operations["addPublicRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shells": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List public tournament shells as the authenticated user
+         * @description Returns at most 100 public tournaments, including the authenticated user's roles.
+         */
+        get: operations["listAuthenticatedTournamentShells"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shellswithrole": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tournament shells by user role
+         * @description Returns non-example tournaments where the authenticated user has any role in the supplied bitmask.
+         */
+        get: operations["listTournamentShellsByRole"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -797,6 +857,19 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** @description Lightweight tournament summary used in tournament selection lists. */
+        TournamentShell: {
+            tournamentId: number;
+            /** @description Custom sport ID, or 0 when the tournament has multiple sports. */
+            singleCustomSport: number;
+            /** @description Tournament league name. */
+            name: string;
+            /** Format: date-time */
+            startDateTime: string;
+            /** @description Role bitmask for the authenticated user; 0 for anonymous users or no roles. */
+            roles: number;
+            public: boolean;
+        };
         Competitor: {
             id?: number;
             name?: string;
@@ -980,6 +1053,13 @@ export interface components {
             };
             content?: never;
         };
+        /** @description The supplied request parameters could not be processed. */
+        UnprocessableEntity: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
     };
     parameters: {
         userId: number;
@@ -996,6 +1076,16 @@ export interface components {
         paymentId: string;
         code: string;
         role: number;
+        /** @description Include tournaments starting at or after this date and time. */
+        shellStartDate: string;
+        /** @description Include tournaments starting at or before this date and time. */
+        shellEndDate: string;
+        /** @description Case-sensitive partial tournament name match. */
+        shellName: string;
+        /** @description Filter by whether the tournament is an example tournament. */
+        shellExample: boolean;
+        /** @description Role bitmask; tournaments matching any supplied role are returned. */
+        shellRoles: number;
     };
     requestBodies: never;
     headers: never;
@@ -1354,6 +1444,36 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listPublicTournamentShells: {
+        parameters: {
+            query?: {
+                /** @description Include tournaments starting at or after this date and time. */
+                startDate?: components["parameters"]["shellStartDate"];
+                /** @description Include tournaments starting at or before this date and time. */
+                endDate?: components["parameters"]["shellEndDate"];
+                /** @description Case-sensitive partial tournament name match. */
+                name?: components["parameters"]["shellName"];
+                /** @description Filter by whether the tournament is an example tournament. */
+                example?: components["parameters"]["shellExample"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public tournament shells. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentShell"][];
+                };
+            };
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
     getPublicTournament: {
         parameters: {
             query?: never;
@@ -1465,6 +1585,62 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    listAuthenticatedTournamentShells: {
+        parameters: {
+            query?: {
+                /** @description Include tournaments starting at or after this date and time. */
+                startDate?: components["parameters"]["shellStartDate"];
+                /** @description Include tournaments starting at or before this date and time. */
+                endDate?: components["parameters"]["shellEndDate"];
+                /** @description Case-sensitive partial tournament name match. */
+                name?: components["parameters"]["shellName"];
+                /** @description Filter by whether the tournament is an example tournament. */
+                example?: components["parameters"]["shellExample"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public tournament shells with role information. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentShell"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listTournamentShellsByRole: {
+        parameters: {
+            query?: {
+                /** @description Role bitmask; tournaments matching any supplied role are returned. */
+                roles?: components["parameters"]["shellRoles"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tournament shells matching the role filter. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentShell"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["UnprocessableEntity"];
         };
     };
     createTournament: {
