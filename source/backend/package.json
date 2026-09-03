@@ -10,7 +10,7 @@
     "db:start": "docker compose -f ../../infra/mongodb/docker-compose.yml up -d",
     "db:stop": "docker compose -f ../../infra/mongodb/docker-compose.yml down",
     "generate": "openapi-typescript ../../infra/openapi.yaml -o src/openapi.gen.ts",
-    "build": "npm run generate && tsc -p tsconfig.json",
+    "build": "npm run generate && tsc -p tsconfig.json && cp ../../infra/openapi.yaml dist/openapi.yaml",
     "start": "node dist/server.js",
     "dev": "npm run generate && tsx src/server.ts"
   },

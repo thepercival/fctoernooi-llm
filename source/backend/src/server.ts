@@ -20,7 +20,7 @@ const PORT = Number(process.env.PORT ?? 8080);
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
 const JWT_EXPIRES_IN = '8h';
 const BCRYPT_ROUNDS = 10;
-const SPEC_PATH = path.join(__dirname, '../../../infra/openapi.yaml');
+const SPEC_PATH = path.join(__dirname, 'openapi.yaml');
 
 // ── Request body type aliases (from generated spec) ───────────────────────────
 

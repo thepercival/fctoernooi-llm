@@ -46,6 +46,7 @@ resource resAppServiceWebConfig 'Microsoft.Web/sites/config@2024-11-01' = {
   parent: resAppService
   name: 'web'
   properties: {
+    appCommandLine: 'node dist/server.js'
     ipSecurityRestrictions: []
     ipSecurityRestrictionsDefaultAction: 'Allow'
     scmIpSecurityRestrictions: []

@@ -61,3 +61,23 @@ jobs:
               --parameters coreResourceGroupName=${{ inputs.core-resource-group }} \
               --parameters environment=${{ inputs.environment }} \
               --parameters entraAdminPrincipalId=${{ secrets.ENTRA_ADMINPRINCIPAL_ID }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: source/backend/package-lock.json
+
+      - name: Build backend
+        working-directory: source/backend
+        run: |
+          npm ci
+          npm run build
+          npm prune --omit=dev
+
+      - name: Deploy backend to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: as-fctoernooi-api-${{ inputs.environment }}
+          package: source/backend
