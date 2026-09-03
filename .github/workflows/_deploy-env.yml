@@ -76,7 +76,7 @@ jobs:
           npm run build
           npm prune --omit=dev
 
-      read -s -p "MongoDB password: " DB_PASSWORD; echo; DB_PASSWORD="$DB_PASSWORD" node --input-type=module -e 'import { MongoClient } from "mongodb"; const uri=`mongodb://fctoernooi-dev:${encodeURIComponent(process.env.DB_PASSWORD)}@db.cdkdev.nl:27017/fctoernooi-dev?authSource=fctoernooi-dev&tls=true`; const client=new MongoClient(uri); try { await client.connect(); await client.db("fctoernooi-dev").command({ping:1}); console.log("Connection successful"); } catch(e) { console.error(e.message); } finally { await client.close(); }'      - name: Deploy App Service for API Backend
+      - name: Deploy App Service for API Backend
         uses: azure/webapps-deploy@v3
         with:
           app-name: as-fctoernooi-api-${{ inputs.environment }}
