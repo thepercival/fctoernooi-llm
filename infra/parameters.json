@@ -106,7 +106,7 @@
                     "protocols": [
                         "https"
                     ],
-                    "subscriptionRequired": true,
+                    "subscriptionRequired": false,
                     "format": "openapi"
                 },
                 "product": {
@@ -114,7 +114,7 @@
                     "properties": {
                         "displayName": "FCToernooi API",
                         "description": "Tournament management REST API",
-                        "subscriptionRequired": true,
+                        "subscriptionRequired": false,
                         "approvalRequired": false,
                         "state": "published"
                     },
