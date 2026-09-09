@@ -11,6 +11,7 @@ param appServicePlan object
 param applicationInsights object
 param appServiceBackend object
 param apiBackend object
+param mcpServer object
 
 // param appServiceFrontend object
 param openaiAccount object
@@ -216,6 +217,22 @@ module modApimApi 'br/modules:apim-api:latest' = {
   }
 }
 
+// ── APIM: MCP server (exposes API operations as tools for AI agents) ─────────
+// Tool list lives in mcp-tools.json, generated from openapi.yaml operationIds
+
+module modMcpServer 'modules/mcp-server.bicep' = {
+  name: 'modMcpServer'
+  scope: resourceGroup(coreResourceGroupName)
+  params: {
+    apiManagementName: apimName
+    backingApiName: apiBackend.name
+    mcpServer: mcpServer
+    productName: apiBackend.product.name
+    tools: loadJsonContent('mcp-tools.json').tools
+  }
+  dependsOn: [modApimApi]
+}
+
 // ── APIM: chatbot frontend ────────────────────────────────────────────────────
 
 // module modApimApiFrontend 'modules/fctoernooi-frontend/api.bicep' = {
@@ -235,6 +252,7 @@ module modApimApi 'br/modules:apim-api:latest' = {
 output backendUrl string = modAppServiceBackend.outputs.url
 // output frontendUrl string = modAppServiceFrontend.outputs.url
 output apimGatewayUrl string = 'https://${apimName}.azure-api.net'
+output mcpServerUrl string = modMcpServer.outputs.mcpServerUrl
 output openaiAccountName string = openaiAccount.name
 output openaiProjectName string = openaiProject.name
 

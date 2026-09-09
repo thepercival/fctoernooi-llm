@@ -143,3 +143,4 @@ vite.config.ts.timestamp-*
 .vite/
 
 infra/**/*.json
+!infra/mcp-tools.json

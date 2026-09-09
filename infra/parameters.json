@@ -132,6 +132,14 @@
                     "prd": "fctoernooi"
                 }
             }
+        },
+        "mcpServer": {
+            "value": {
+                "name": "fctoernooi-api-mcp",
+                "displayName": "FCToernooi API MCP Server",
+                "description": "Exposes the FCToernooi tournament API as MCP tools for AI agents.",
+                "path": "fctoernooi-api-mcp"
+            }
         }
     }
 }
