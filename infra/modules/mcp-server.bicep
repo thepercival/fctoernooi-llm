@@ -21,6 +21,8 @@ resource resMcpServer 'Microsoft.ApiManagement/service/apis@2025-09-01-preview' 
   }
 }
 
+// Serialized: concurrent tool writes against the same MCP server conflict with 412 PreconditionFailed
+@batchSize(1)
 resource resMcpTools 'Microsoft.ApiManagement/service/apis/tools@2025-09-01-preview' = [for tool in tools: {
   parent: resMcpServer
   name: tool.operationId
