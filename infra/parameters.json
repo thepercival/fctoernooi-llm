@@ -115,7 +115,6 @@
                         "displayName": "FCToernooi API",
                         "description": "Tournament management REST API",
                         "subscriptionRequired": false,
-                        "approvalRequired": false,
                         "state": "published"
                     },
                     "groups": [
