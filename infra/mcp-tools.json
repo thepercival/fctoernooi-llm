@@ -1,80 +1,324 @@
 {
   "tools": [
-    { "operationId": "register", "displayName": "Register", "description": "Register a new user" },
-    { "operationId": "login", "displayName": "Login", "description": "Login" },
-    { "operationId": "resetPassword", "displayName": "Reset password", "description": "Request a password reset email" },
-    { "operationId": "changePassword", "displayName": "Change password", "description": "Change password using reset token" },
-    { "operationId": "extendToken", "displayName": "Extend token", "description": "Extend JWT token lifetime" },
-    { "operationId": "validateEmail", "displayName": "Validate email", "description": "Validate email address with code" },
-    { "operationId": "validationRequest", "displayName": "Resend validation email", "description": "Re-send validation email" },
-    { "operationId": "updateProfile", "displayName": "Update profile", "description": "Update user profile (name)" },
-
-    { "operationId": "getUser", "displayName": "Get user", "description": "Get user" },
-    { "operationId": "updateUser", "displayName": "Update user", "description": "Update user" },
-    { "operationId": "deleteUser", "displayName": "Delete user", "description": "Delete user account" },
-
-    { "operationId": "listPaymentMethods", "displayName": "List payment methods", "description": "List available payment methods" },
-    { "operationId": "listIDealIssuers", "displayName": "List iDEAL issuers", "description": "List iDEAL issuers" },
-    { "operationId": "buyCredits", "displayName": "Buy credits", "description": "Purchase credits" },
-    { "operationId": "getPayment", "displayName": "Get payment", "description": "Get payment" },
-
-    { "operationId": "listPublicTournamentShells", "displayName": "List public tournament shells", "description": "List at most 100 public tournaments matching the supplied filters" },
-    { "operationId": "getPublicTournament", "displayName": "Get public tournament", "description": "Get public tournament" },
-    { "operationId": "getPublicStructure", "displayName": "Get public tournament structure", "description": "Get public tournament structure" },
-    { "operationId": "getPublicRules", "displayName": "Get public tournament rules", "description": "Get public tournament rules" },
-    { "operationId": "getPublicRegistrationSettings", "displayName": "Get public registration settings", "description": "Get public registration settings" },
-    { "operationId": "addPublicRegistration", "displayName": "Submit public registration", "description": "Submit a public registration" },
-
-    { "operationId": "listAuthenticatedTournamentShells", "displayName": "List tournament shells (authenticated)", "description": "List public tournament shells as the authenticated user, including roles" },
-    { "operationId": "listTournamentShellsByRole", "displayName": "List tournament shells by role", "description": "List tournament shells by user role" },
-    { "operationId": "createTournament", "displayName": "Create tournament", "description": "Create tournament" },
-    { "operationId": "getTournament", "displayName": "Get tournament", "description": "Get tournament (authenticated)" },
-    { "operationId": "updateTournament", "displayName": "Update tournament", "description": "Update tournament" },
-    { "operationId": "deleteTournament", "displayName": "Delete tournament", "description": "Delete tournament" },
-
-    { "operationId": "listCompetitors", "displayName": "List competitors", "description": "List competitors" },
-    { "operationId": "addCompetitor", "displayName": "Add competitor", "description": "Add competitor" },
-    { "operationId": "getCompetitor", "displayName": "Get competitor", "description": "Get competitor" },
-    { "operationId": "updateCompetitor", "displayName": "Update competitor", "description": "Update competitor" },
-    { "operationId": "deleteCompetitor", "displayName": "Remove competitor", "description": "Remove competitor" },
-    { "operationId": "swapCompetitors", "displayName": "Swap competitors", "description": "Swap two competitors" },
-
-    { "operationId": "listSponsors", "displayName": "List sponsors", "description": "List sponsors" },
-    { "operationId": "addSponsor", "displayName": "Add sponsor", "description": "Add sponsor" },
-    { "operationId": "updateSponsor", "displayName": "Update sponsor", "description": "Update sponsor" },
-    { "operationId": "deleteSponsor", "displayName": "Remove sponsor", "description": "Remove sponsor" },
-
-    { "operationId": "addLockerRoom", "displayName": "Add locker room", "description": "Add locker room" },
-    { "operationId": "updateLockerRoom", "displayName": "Update locker room", "description": "Update locker room" },
-    { "operationId": "deleteLockerRoom", "displayName": "Remove locker room", "description": "Remove locker room" },
-    { "operationId": "syncLockerRoomCompetitors", "displayName": "Sync locker room competitors", "description": "Sync competitors assigned to locker room" },
-
-    { "operationId": "addRecess", "displayName": "Add recess", "description": "Add recess" },
-    { "operationId": "deleteRecess", "displayName": "Remove recess", "description": "Remove recess" },
-
-    { "operationId": "listRules", "displayName": "List rules", "description": "List rules" },
-    { "operationId": "addRule", "displayName": "Add rule", "description": "Add rule" },
-    { "operationId": "updateRule", "displayName": "Update rule", "description": "Update rule" },
-    { "operationId": "deleteRule", "displayName": "Remove rule", "description": "Remove rule" },
-    { "operationId": "rulesPriorityUp", "displayName": "Move rule up in priority", "description": "Move rule up in priority" },
-
-    { "operationId": "removeTournamentUser", "displayName": "Remove tournament user", "description": "Remove user from tournament" },
-    { "operationId": "getTournamentUserEmail", "displayName": "Get tournament user email", "description": "Get email address of tournament user" },
-    { "operationId": "addTournamentUserRole", "displayName": "Add tournament user role", "description": "Add role to tournament user" },
-    { "operationId": "removeTournamentUserRole", "displayName": "Remove tournament user role", "description": "Remove role from tournament user" },
-
-    { "operationId": "listInvitations", "displayName": "List invitations", "description": "List invitations" },
-    { "operationId": "addInvitation", "displayName": "Send invitation", "description": "Send invitation" },
-    { "operationId": "deleteInvitation", "displayName": "Revoke invitation", "description": "Revoke invitation" },
-    { "operationId": "addInvitationRole", "displayName": "Add invitation role", "description": "Add role to invitation" },
-    { "operationId": "removeInvitationRole", "displayName": "Remove invitation role", "description": "Remove role from invitation" },
-
-    { "operationId": "listRegistrations", "displayName": "List registrations", "description": "List registrations for a category" },
-    { "operationId": "addRegistration", "displayName": "Add registration", "description": "Add registration (admin)" },
-    { "operationId": "getRegistration", "displayName": "Get registration", "description": "Get registration" },
-    { "operationId": "updateRegistration", "displayName": "Update registration", "description": "Update registration (accept / decline)" },
-    { "operationId": "deleteRegistration", "displayName": "Delete registration", "description": "Delete registration" },
-    { "operationId": "getRegistrationSettings", "displayName": "Get registration settings", "description": "Get registration settings" },
-    { "operationId": "updateRegistrationSettings", "displayName": "Update registration settings", "description": "Update registration settings" }
+    {
+      "operationId": "register",
+      "displayName": "register",
+      "description": "Register a new user"
+    },
+    {
+      "operationId": "login",
+      "displayName": "login",
+      "description": "Login"
+    },
+    {
+      "operationId": "resetPassword",
+      "displayName": "resetPassword",
+      "description": "Request a password reset email"
+    },
+    {
+      "operationId": "changePassword",
+      "displayName": "changePassword",
+      "description": "Change password using reset token"
+    },
+    {
+      "operationId": "extendToken",
+      "displayName": "extendToken",
+      "description": "Extend JWT token lifetime"
+    },
+    {
+      "operationId": "validateEmail",
+      "displayName": "validateEmail",
+      "description": "Validate email address with code"
+    },
+    {
+      "operationId": "validationRequest",
+      "displayName": "validationRequest",
+      "description": "Re-send validation email"
+    },
+    {
+      "operationId": "updateProfile",
+      "displayName": "updateProfile",
+      "description": "Update user profile (name)"
+    },
+    {
+      "operationId": "getUser",
+      "displayName": "getUser",
+      "description": "Get user"
+    },
+    {
+      "operationId": "updateUser",
+      "displayName": "updateUser",
+      "description": "Update user"
+    },
+    {
+      "operationId": "deleteUser",
+      "displayName": "deleteUser",
+      "description": "Delete user account"
+    },
+    {
+      "operationId": "listPaymentMethods",
+      "displayName": "listPaymentMethods",
+      "description": "List available payment methods"
+    },
+    {
+      "operationId": "listIDealIssuers",
+      "displayName": "listIDealIssuers",
+      "description": "List iDEAL issuers"
+    },
+    {
+      "operationId": "buyCredits",
+      "displayName": "buyCredits",
+      "description": "Purchase credits"
+    },
+    {
+      "operationId": "getPayment",
+      "displayName": "getPayment",
+      "description": "Get payment"
+    },
+    {
+      "operationId": "listPublicTournamentShells",
+      "displayName": "listPublicTournamentShells",
+      "description": "List at most 100 public tournaments matching the supplied filters"
+    },
+    {
+      "operationId": "getPublicTournament",
+      "displayName": "getPublicTournament",
+      "description": "Get public tournament"
+    },
+    {
+      "operationId": "getPublicStructure",
+      "displayName": "getPublicStructure",
+      "description": "Get public tournament structure"
+    },
+    {
+      "operationId": "getPublicRules",
+      "displayName": "getPublicRules",
+      "description": "Get public tournament rules"
+    },
+    {
+      "operationId": "getPublicRegistrationSettings",
+      "displayName": "getPublicRegistrationSettings",
+      "description": "Get public registration settings"
+    },
+    {
+      "operationId": "addPublicRegistration",
+      "displayName": "addPublicRegistration",
+      "description": "Submit a public registration"
+    },
+    {
+      "operationId": "listAuthenticatedTournamentShells",
+      "displayName": "listAuthenticatedTournamentShells",
+      "description": "List public tournament shells as the authenticated user, including roles"
+    },
+    {
+      "operationId": "listTournamentShellsByRole",
+      "displayName": "listTournamentShellsByRole",
+      "description": "List tournament shells by user role"
+    },
+    {
+      "operationId": "createTournament",
+      "displayName": "createTournament",
+      "description": "Create tournament"
+    },
+    {
+      "operationId": "getTournament",
+      "displayName": "getTournament",
+      "description": "Get tournament (authenticated)"
+    },
+    {
+      "operationId": "updateTournament",
+      "displayName": "updateTournament",
+      "description": "Update tournament"
+    },
+    {
+      "operationId": "deleteTournament",
+      "displayName": "deleteTournament",
+      "description": "Delete tournament"
+    },
+    {
+      "operationId": "listCompetitors",
+      "displayName": "listCompetitors",
+      "description": "List competitors"
+    },
+    {
+      "operationId": "addCompetitor",
+      "displayName": "addCompetitor",
+      "description": "Add competitor"
+    },
+    {
+      "operationId": "getCompetitor",
+      "displayName": "getCompetitor",
+      "description": "Get competitor"
+    },
+    {
+      "operationId": "updateCompetitor",
+      "displayName": "updateCompetitor",
+      "description": "Update competitor"
+    },
+    {
+      "operationId": "deleteCompetitor",
+      "displayName": "deleteCompetitor",
+      "description": "Remove competitor"
+    },
+    {
+      "operationId": "swapCompetitors",
+      "displayName": "swapCompetitors",
+      "description": "Swap two competitors"
+    },
+    {
+      "operationId": "listSponsors",
+      "displayName": "listSponsors",
+      "description": "List sponsors"
+    },
+    {
+      "operationId": "addSponsor",
+      "displayName": "addSponsor",
+      "description": "Add sponsor"
+    },
+    {
+      "operationId": "updateSponsor",
+      "displayName": "updateSponsor",
+      "description": "Update sponsor"
+    },
+    {
+      "operationId": "deleteSponsor",
+      "displayName": "deleteSponsor",
+      "description": "Remove sponsor"
+    },
+    {
+      "operationId": "addLockerRoom",
+      "displayName": "addLockerRoom",
+      "description": "Add locker room"
+    },
+    {
+      "operationId": "updateLockerRoom",
+      "displayName": "updateLockerRoom",
+      "description": "Update locker room"
+    },
+    {
+      "operationId": "deleteLockerRoom",
+      "displayName": "deleteLockerRoom",
+      "description": "Remove locker room"
+    },
+    {
+      "operationId": "syncLockerRoomCompetitors",
+      "displayName": "syncLockerRoomCompetitors",
+      "description": "Sync competitors assigned to locker room"
+    },
+    {
+      "operationId": "addRecess",
+      "displayName": "addRecess",
+      "description": "Add recess"
+    },
+    {
+      "operationId": "deleteRecess",
+      "displayName": "deleteRecess",
+      "description": "Remove recess"
+    },
+    {
+      "operationId": "listRules",
+      "displayName": "listRules",
+      "description": "List rules"
+    },
+    {
+      "operationId": "addRule",
+      "displayName": "addRule",
+      "description": "Add rule"
+    },
+    {
+      "operationId": "updateRule",
+      "displayName": "updateRule",
+      "description": "Update rule"
+    },
+    {
+      "operationId": "deleteRule",
+      "displayName": "deleteRule",
+      "description": "Remove rule"
+    },
+    {
+      "operationId": "rulesPriorityUp",
+      "displayName": "rulesPriorityUp",
+      "description": "Move rule up in priority"
+    },
+    {
+      "operationId": "removeTournamentUser",
+      "displayName": "removeTournamentUser",
+      "description": "Remove user from tournament"
+    },
+    {
+      "operationId": "getTournamentUserEmail",
+      "displayName": "getTournamentUserEmail",
+      "description": "Get email address of tournament user"
+    },
+    {
+      "operationId": "addTournamentUserRole",
+      "displayName": "addTournamentUserRole",
+      "description": "Add role to tournament user"
+    },
+    {
+      "operationId": "removeTournamentUserRole",
+      "displayName": "removeTournamentUserRole",
+      "description": "Remove role from tournament user"
+    },
+    {
+      "operationId": "listInvitations",
+      "displayName": "listInvitations",
+      "description": "List invitations"
+    },
+    {
+      "operationId": "addInvitation",
+      "displayName": "addInvitation",
+      "description": "Send invitation"
+    },
+    {
+      "operationId": "deleteInvitation",
+      "displayName": "deleteInvitation",
+      "description": "Revoke invitation"
+    },
+    {
+      "operationId": "addInvitationRole",
+      "displayName": "addInvitationRole",
+      "description": "Add role to invitation"
+    },
+    {
+      "operationId": "removeInvitationRole",
+      "displayName": "removeInvitationRole",
+      "description": "Remove role from invitation"
+    },
+    {
+      "operationId": "listRegistrations",
+      "displayName": "listRegistrations",
+      "description": "List registrations for a category"
+    },
+    {
+      "operationId": "addRegistration",
+      "displayName": "addRegistration",
+      "description": "Add registration (admin)"
+    },
+    {
+      "operationId": "getRegistration",
+      "displayName": "getRegistration",
+      "description": "Get registration"
+    },
+    {
+      "operationId": "updateRegistration",
+      "displayName": "updateRegistration",
+      "description": "Update registration (accept / decline)"
+    },
+    {
+      "operationId": "deleteRegistration",
+      "displayName": "deleteRegistration",
+      "description": "Delete registration"
+    },
+    {
+      "operationId": "getRegistrationSettings",
+      "displayName": "getRegistrationSettings",
+      "description": "Get registration settings"
+    },
+    {
+      "operationId": "updateRegistrationSettings",
+      "displayName": "updateRegistrationSettings",
+      "description": "Update registration settings"
+    }
   ]
 }
