@@ -6,30 +6,30 @@ param appServicePlanId string
 param appInsightsConnectionString string
 param appInsightsWorkspaceResourceId string
 param withStagingSlot bool
-param dbHost string
-param dbPort string = '27017'
-param dbName string
+param backendApiBaseUrl string
 @secure()
-param dbPassword string
-
-var mongoDbConnString string = 'mongodb://${dbName}:${dbPassword}@${dbHost}:${dbPort}/${dbName}?authSource=${dbName}&tls=true'
+param backendApiKey string = ''
 
 module modAppService 'br/modules:app-service:latest' = {
-  name: 'modAppService'
+  name: 'modAppServiceFrontend'
   params: {
     appServiceName: appServiceName
     appKind: appKind
     location: location
-    additionEnvironmentVariables: [
+    additionalSharedEnvironmentVariables: [
       {
-        name: 'MONGODB_URI'
-        value: mongoDbConnString
-      }
-      {
-        name: 'MONGODB_DB'
-        value: dbName
+        name: 'FCTOERNOOI_API_BASEURL'
+        value: backendApiBaseUrl
       }
     ]
+    // Empty for environments without the secret provisioned (e.g. acc) — passed in by the caller.
+    additionalProductionOnlyEnvironmentVariables: [
+      {
+        name: 'FCTOERNOOI_API_KEY'
+        value: backendApiKey
+      }
+    ]
+    additionalStagingOnlyEnvironmentVariables: []
     linuxFxVersion: linuxFxVersion
     appServicePlanId: appServicePlanId
     appInsightsConnectionString: appInsightsConnectionString
@@ -57,7 +57,6 @@ resource resAppServiceWebConfig 'Microsoft.Web/sites/config@2024-11-01' = {
     modAppService
   ]
 }
-
 
 output principalId string = modAppService.outputs.principalId
 output url string = modAppService.outputs.url

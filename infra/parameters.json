@@ -25,25 +25,15 @@
                     "acc": true,
                     "prd": true
                 },
-                "description": "For Machine Learning in FCToernooi",
-                "roleAssignments": [
+                "description": "For FCToernooi ChatApp",
+                "roleAssignmentTemplates": [
                     {
-                        "principalId": null,
-                        "principalIdVarName": "entraAdminPrincipalId",
+                        "principalName": "cdkdev",
                         "principalType": "User",
-                        "roleName": "Cognitive Services OpenAI User",
-                        "usersDescription": "Application managed identities, developers, end users",
-                        "roleDefinitionId": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
-                    },
-                    {
-                        "principalId": null,
-                        "principalIdVarName": "entraAdminPrincipalId",
-                        "principalType": "User",
-                        "roleName": "Cognitive Services OpenAI Contributor",
-                        "usersDescription": "AI engineers, ML engineers, project admins",
-                        "roleDefinitionId": "a001fd3d-188f-4b5d-821b-7da978bf7442"
+                        "roleName": "Foundry User",
+                        "roleDefinitionId": "53ca6127-db72-4b80-b1b0-d745d6d5456d"
                     }
-                ]
+                ]         
             }
         },
         "apim": {
@@ -83,6 +73,19 @@
                 "name": "as-fctoernooi-api",
                 "linuxFxVersion": "NODE|24-lts",
                 "kind": "app,linux"
+            }
+        },
+        "appServiceFrontend": {
+            "value": {
+                "name": "as-fctoernooi-frontend",
+                "linuxFxVersion": "NODE|24-lts",
+                "kind": "app,linux",
+                "apiBaseUrl": {
+                    "dev": "https://apim-cdk-dev.azure-api.net/fctoernooi-api/v1",
+                    "acc": "https://apim-cdk-acc.azure-api.net/fctoernooi-api/v1",
+                    "prd": "https://apim-cdk-prd.azure-api.net/fctoernooi-api/v1"
+                },
+                "apiKeySecretName": "fctoernooi-api-key"
             }
         },
         "apiBackend": {

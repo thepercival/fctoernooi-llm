@@ -76,39 +76,9 @@
       "description": "Get payment"
     },
     {
-      "operationId": "listPublicTournamentShells",
-      "displayName": "listPublicTournamentShells",
-      "description": "List at most 100 public tournaments matching the supplied filters"
-    },
-    {
-      "operationId": "getPublicTournament",
-      "displayName": "getPublicTournament",
-      "description": "Get public tournament"
-    },
-    {
-      "operationId": "getPublicStructure",
-      "displayName": "getPublicStructure",
-      "description": "Get public tournament structure"
-    },
-    {
-      "operationId": "getPublicRules",
-      "displayName": "getPublicRules",
-      "description": "Get public tournament rules"
-    },
-    {
-      "operationId": "getPublicRegistrationSettings",
-      "displayName": "getPublicRegistrationSettings",
-      "description": "Get public registration settings"
-    },
-    {
-      "operationId": "addPublicRegistration",
-      "displayName": "addPublicRegistration",
-      "description": "Submit a public registration"
-    },
-    {
-      "operationId": "listAuthenticatedTournamentShells",
-      "displayName": "listAuthenticatedTournamentShells",
-      "description": "List public tournament shells as the authenticated user, including roles"
+      "operationId": "listTournamentShells",
+      "displayName": "listTournamentShells",
+      "description": "List tournament shells; includes the caller's own non-public tournaments with roles when authenticated"
     },
     {
       "operationId": "listTournamentShellsByRole",
@@ -123,7 +93,7 @@
     {
       "operationId": "getTournament",
       "displayName": "getTournament",
-      "description": "Get tournament (authenticated)"
+      "description": "Get tournament"
     },
     {
       "operationId": "updateTournament",
@@ -241,24 +211,24 @@
       "description": "Move rule up in priority"
     },
     {
-      "operationId": "removeTournamentUser",
-      "displayName": "removeTournamentUser",
-      "description": "Remove user from tournament"
+      "operationId": "removeTournamentRoleAssignment",
+      "displayName": "removeTournamentRoleAssignment",
+      "description": "Remove a role assignment from a tournament"
     },
     {
-      "operationId": "getTournamentUserEmail",
-      "displayName": "getTournamentUserEmail",
-      "description": "Get email address of tournament user"
+      "operationId": "getTournamentRoleAssignmentEmail",
+      "displayName": "getTournamentRoleAssignmentEmail",
+      "description": "Get email address of a role assignment's user"
     },
     {
-      "operationId": "addTournamentUserRole",
-      "displayName": "addTournamentUserRole",
-      "description": "Add role to tournament user"
+      "operationId": "addTournamentRoleAssignmentRole",
+      "displayName": "addTournamentRoleAssignmentRole",
+      "description": "Add a role bit to a role assignment"
     },
     {
-      "operationId": "removeTournamentUserRole",
-      "displayName": "removeTournamentUserRole",
-      "description": "Remove role from tournament user"
+      "operationId": "removeTournamentRoleAssignmentRole",
+      "displayName": "removeTournamentRoleAssignmentRole",
+      "description": "Remove a role bit from a role assignment"
     },
     {
       "operationId": "listInvitations",
@@ -293,7 +263,7 @@
     {
       "operationId": "addRegistration",
       "displayName": "addRegistration",
-      "description": "Add registration (admin)"
+      "description": "Submit a registration"
     },
     {
       "operationId": "getRegistration",

@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/public/auth/register": {
+    "/auth/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -21,7 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/auth/login": {
+    "/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -38,7 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/auth/passwordreset": {
+    "/auth/passwordreset": {
         parameters: {
             query?: never;
             header?: never;
@@ -55,7 +55,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/auth/passwordchange": {
+    "/auth/passwordchange": {
         parameters: {
             query?: never;
             header?: never;
@@ -227,111 +227,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/shells": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List public tournament shells
-         * @description Returns at most 100 public tournaments matching the supplied filters.
-         */
-        get: operations["listPublicTournamentShells"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/tournaments/{tournamentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get public tournament */
-        get: operations["getPublicTournament"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/tournaments/{tournamentId}/structure": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get public tournament structure */
-        get: operations["getPublicStructure"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/tournaments/{tournamentId}/rules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get public tournament rules */
-        get: operations["getPublicRules"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/tournaments/{tournamentId}/registrations/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get public registration settings */
-        get: operations["getPublicRegistrationSettings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/tournaments/{tournamentId}/categories/{categoryId}/registrations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit a public registration */
-        post: operations["addPublicRegistration"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/shells": {
         parameters: {
             query?: never;
@@ -340,10 +235,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List public tournament shells as the authenticated user
-         * @description Returns at most 100 public tournaments, including the authenticated user's roles.
+         * List tournament shells
+         * @description Returns public tournaments matching the supplied filters. When called with a valid bearer token, also includes the caller's own non-public tournaments, enriched with their role bitmask for each.
          */
-        get: operations["listAuthenticatedTournamentShells"];
+        get: operations["listTournamentShells"];
         put?: never;
         post?: never;
         delete?: never;
@@ -381,7 +276,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create tournament */
+        /**
+         * Create tournament
+         * @description Creates the tournament and its initial Admin role assignment for the caller in one operation.
+         */
         post: operations["createTournament"];
         delete?: never;
         options?: never;
@@ -396,7 +294,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get tournament (authenticated) */
+        /** Get tournament */
         get: operations["getTournament"];
         /** Update tournament */
         put: operations["updateTournament"];
@@ -637,7 +535,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/tournaments/{tournamentId}/users/{tournamentUserId}": {
+    "/tournaments/{tournamentId}/roleassignments/{roleAssignmentId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -647,22 +545,22 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove user from tournament */
-        delete: operations["removeTournamentUser"];
+        /** Remove a role assignment from a tournament */
+        delete: operations["removeTournamentRoleAssignment"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/tournaments/{tournamentId}/users/{tournamentUserId}/emailaddress": {
+    "/tournaments/{tournamentId}/roleassignments/{roleAssignmentId}/emailaddress": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get email address of tournament user */
-        get: operations["getTournamentUserEmail"];
+        /** Get email address of a role assignment's user */
+        get: operations["getTournamentRoleAssignmentEmail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -671,7 +569,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/tournaments/{tournamentId}/users/{tournamentUserId}/roles/{role}": {
+    "/tournaments/{tournamentId}/roleassignments/{roleAssignmentId}/roles/{role}": {
         parameters: {
             query?: never;
             header?: never;
@@ -680,10 +578,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add role to tournament user */
-        post: operations["addTournamentUserRole"];
-        /** Remove role from tournament user */
-        delete: operations["removeTournamentUserRole"];
+        /** Add a role bit to a role assignment */
+        post: operations["addTournamentRoleAssignmentRole"];
+        /** Remove a role bit from a role assignment */
+        delete: operations["removeTournamentRoleAssignmentRole"];
         options?: never;
         head?: never;
         patch?: never;
@@ -752,7 +650,7 @@ export interface paths {
         /** List registrations for a category */
         get: operations["listRegistrations"];
         put?: never;
-        /** Add registration (admin) */
+        /** Submit a registration */
         post: operations["addRegistration"];
         delete?: never;
         options?: never;
@@ -840,6 +738,7 @@ export interface components {
             createdDateTime?: string;
             /** @enum {string} */
             startEditMode?: "EditMode" | "ReadMode";
+            /** @description When true (default), the tournament, its rules, registration settings, and shells listing are readable by anyone and anyone can submit a registration. When false, only a caller with an Admin role assignment can view or use it. Management actions always require their specific role regardless of this flag. */
             public?: boolean;
             example?: boolean;
             intro?: string;
@@ -852,7 +751,8 @@ export interface components {
         TournamentRequest: {
             intro: string;
             location?: string | null;
-            public?: boolean;
+            /** @default true */
+            public: boolean;
             theme?: {
                 [key: string]: unknown;
             } | null;
@@ -936,10 +836,11 @@ export interface components {
         RuleRequest: {
             text: string;
         };
-        TournamentUser: {
+        /** @description The only link between a User and a Tournament. Every tournament always has at least one Admin assignment. */
+        TournamentRoleAssignment: {
             id?: number;
             userId?: number;
-            /** @description Bitmask of roles. */
+            /** @description Bitmask of roles (Admin=1, RoleAdmin=2, GameResultAdmin=4, Referee=8). */
             roles?: number;
         };
         Invitation: {
@@ -1069,7 +970,7 @@ export interface components {
         lockerRoomId: number;
         recessId: number;
         ruleId: number;
-        tournamentUserId: number;
+        roleAssignmentId: number;
         invitationId: number;
         categoryId: number;
         registrationId: number;
@@ -1444,7 +1345,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listPublicTournamentShells: {
+    listTournamentShells: {
         parameters: {
             query?: {
                 /** @description Include tournaments starting at or after this date and time. */
@@ -1462,7 +1363,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Public tournament shells. */
+            /** @description Tournament shells. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1471,150 +1372,6 @@ export interface operations {
                     "application/json": components["schemas"]["TournamentShell"][];
                 };
             };
-            422: components["responses"]["UnprocessableEntity"];
-        };
-    };
-    getPublicTournament: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tournamentId: components["parameters"]["tournamentId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Tournament. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Tournament"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getPublicStructure: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tournamentId: components["parameters"]["tournamentId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Tournament structure (JSON). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getPublicRules: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tournamentId: components["parameters"]["tournamentId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Rules. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Rule"][];
-                };
-            };
-        };
-    };
-    getPublicRegistrationSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tournamentId: components["parameters"]["tournamentId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Registration settings. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegistrationSettings"];
-                };
-            };
-        };
-    };
-    addPublicRegistration: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tournamentId: components["parameters"]["tournamentId"];
-                categoryId: components["parameters"]["categoryId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegistrationRequest"];
-            };
-        };
-        responses: {
-            /** @description Registration submitted. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    listAuthenticatedTournamentShells: {
-        parameters: {
-            query?: {
-                /** @description Include tournaments starting at or after this date and time. */
-                startDate?: components["parameters"]["shellStartDate"];
-                /** @description Include tournaments starting at or before this date and time. */
-                endDate?: components["parameters"]["shellEndDate"];
-                /** @description Case-sensitive partial tournament name match. */
-                name?: components["parameters"]["shellName"];
-                /** @description Filter by whether the tournament is an example tournament. */
-                example?: components["parameters"]["shellExample"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Public tournament shells with role information. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TournamentShell"][];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
             422: components["responses"]["UnprocessableEntity"];
         };
     };
@@ -1688,6 +1445,7 @@ export interface operations {
                     "application/json": components["schemas"]["Tournament"];
                 };
             };
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -2145,6 +1903,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rule"][];
                 };
             };
+            403: components["responses"]["Forbidden"];
         };
     };
     addRule: {
@@ -2242,19 +2001,19 @@ export interface operations {
             };
         };
     };
-    removeTournamentUser: {
+    removeTournamentRoleAssignment: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 tournamentId: components["parameters"]["tournamentId"];
-                tournamentUserId: components["parameters"]["tournamentUserId"];
+                roleAssignmentId: components["parameters"]["roleAssignmentId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description User removed. */
+            /** @description Role assignment removed. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -2263,13 +2022,13 @@ export interface operations {
             };
         };
     };
-    getTournamentUserEmail: {
+    getTournamentRoleAssignmentEmail: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 tournamentId: components["parameters"]["tournamentId"];
-                tournamentUserId: components["parameters"]["tournamentUserId"];
+                roleAssignmentId: components["parameters"]["roleAssignmentId"];
             };
             cookie?: never;
         };
@@ -2289,13 +2048,13 @@ export interface operations {
             };
         };
     };
-    addTournamentUserRole: {
+    addTournamentRoleAssignmentRole: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 tournamentId: components["parameters"]["tournamentId"];
-                tournamentUserId: components["parameters"]["tournamentUserId"];
+                roleAssignmentId: components["parameters"]["roleAssignmentId"];
                 role: components["parameters"]["role"];
             };
             cookie?: never;
@@ -2311,13 +2070,13 @@ export interface operations {
             };
         };
     };
-    removeTournamentUserRole: {
+    removeTournamentRoleAssignmentRole: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 tournamentId: components["parameters"]["tournamentId"];
-                tournamentUserId: components["parameters"]["tournamentUserId"];
+                roleAssignmentId: components["parameters"]["roleAssignmentId"];
                 role: components["parameters"]["role"];
             };
             cookie?: never;
@@ -2485,7 +2244,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Registration added. */
+            /** @description Registration submitted. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -2494,6 +2253,8 @@ export interface operations {
                     "application/json": components["schemas"]["Registration"];
                 };
             };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getRegistration: {
@@ -2590,6 +2351,7 @@ export interface operations {
                     "application/json": components["schemas"]["RegistrationSettings"];
                 };
             };
+            403: components["responses"]["Forbidden"];
         };
     };
     updateRegistrationSettings: {

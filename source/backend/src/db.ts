@@ -29,7 +29,7 @@ export type RecessRecord = Required<S['Recess']> & { tournamentId: number };
 
 export type RuleRecord = Required<S['Rule']> & { tournamentId: number };
 
-export type TournamentUserRecord = Required<S['TournamentUser']> & { tournamentId: number };
+export type TournamentRoleAssignmentRecord = Required<S['TournamentRoleAssignment']> & { tournamentId: number };
 
 export type InvitationRecord = Required<S['Invitation']> & { tournamentId: number };
 
@@ -43,7 +43,7 @@ export type PaymentRecord = Required<S['Payment']> & { userId: number };
 
 export type CollectionName =
   | 'users' | 'tournaments' | 'competitors' | 'sponsors' | 'lockerRooms'
-  | 'recesses' | 'rules' | 'tournamentUsers' | 'invitations'
+  | 'recesses' | 'rules' | 'tournamentRoleAssignments' | 'invitations'
   | 'registrations' | 'payments';
 
 // ── MongoDB document helpers (integer _id instead of ObjectId) ─────────────────
@@ -93,7 +93,7 @@ export class MongoDb {
     await this.mdb.collection('lockerRooms').createIndex({ tournamentId: 1 });
     await this.mdb.collection('recesses').createIndex({ tournamentId: 1 });
     await this.mdb.collection('rules').createIndex({ tournamentId: 1 });
-    await this.mdb.collection('tournamentUsers').createIndex({ tournamentId: 1, userId: 1 }, { unique: true });
+    await this.mdb.collection('tournamentRoleAssignments').createIndex({ tournamentId: 1, userId: 1 }, { unique: true });
     await this.mdb.collection('invitations').createIndex({ tournamentId: 1, emailaddress: 1 }, { unique: true });
     await this.mdb.collection('registrations').createIndex({ tournamentId: 1, categoryNr: 1 });
     await this.mdb.collection('payments').createIndex({ userId: 1 });

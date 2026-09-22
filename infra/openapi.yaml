@@ -11,9 +11,9 @@ security:
 
 paths:
 
-  # ── Auth (public) ────────────────────────────────────────────────────────────
+  # ── Auth ─────────────────────────────────────────────────────────────────────
 
-  /public/auth/register:
+  /auth/register:
     post:
       tags: [Auth]
       summary: Register a new user
@@ -33,7 +33,7 @@ paths:
         '409':
           description: Email address already in use.
 
-  /public/auth/login:
+  /auth/login:
     post:
       tags: [Auth]
       summary: Login
@@ -57,7 +57,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /public/auth/passwordreset:
+  /auth/passwordreset:
     post:
       tags: [Auth]
       summary: Request a password reset email
@@ -78,7 +78,7 @@ paths:
         '200':
           description: Reset email sent.
 
-  /public/auth/passwordchange:
+  /auth/passwordchange:
     post:
       tags: [Auth]
       summary: Change password using reset token
@@ -279,126 +279,23 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  # ── Tournaments (public) ─────────────────────────────────────────────────────
-
-  /public/shells:
-    get:
-      tags: [TournamentShells]
-      summary: List public tournament shells
-      description: Returns at most 100 public tournaments matching the supplied filters.
-      operationId: listPublicTournamentShells
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/shellStartDate'
-        - $ref: '#/components/parameters/shellEndDate'
-        - $ref: '#/components/parameters/shellName'
-        - $ref: '#/components/parameters/shellExample'
-      responses:
-        '200':
-          description: Public tournament shells.
-          content:
-            application/json:
-              schema:
-                type: array
-                maxItems: 100
-                items:
-                  $ref: '#/components/schemas/TournamentShell'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
-  /public/tournaments/{tournamentId}:
-    get:
-      tags: [Tournaments]
-      summary: Get public tournament
-      operationId: getPublicTournament
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/tournamentId'
-      responses:
-        '200':
-          description: Tournament.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tournament'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /public/tournaments/{tournamentId}/structure:
-    get:
-      tags: [Tournaments]
-      summary: Get public tournament structure
-      operationId: getPublicStructure
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/tournamentId'
-      responses:
-        '200':
-          description: Tournament structure (JSON).
-
-  /public/tournaments/{tournamentId}/rules:
-    get:
-      tags: [Rules]
-      summary: Get public tournament rules
-      operationId: getPublicRules
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/tournamentId'
-      responses:
-        '200':
-          description: Rules.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Rule'
-
-  /public/tournaments/{tournamentId}/registrations/settings:
-    get:
-      tags: [Registrations]
-      summary: Get public registration settings
-      operationId: getPublicRegistrationSettings
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/tournamentId'
-      responses:
-        '200':
-          description: Registration settings.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RegistrationSettings'
-
-  /public/tournaments/{tournamentId}/categories/{categoryId}/registrations:
-    post:
-      tags: [Registrations]
-      summary: Submit a public registration
-      operationId: addPublicRegistration
-      security: []
-      parameters:
-        - $ref: '#/components/parameters/tournamentId'
-        - $ref: '#/components/parameters/categoryId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegistrationRequest'
-      responses:
-        '201':
-          description: Registration submitted.
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  # ── Tournaments (authenticated) ───────────────────────────────────────────────
+  # ── Tournament Shells ─────────────────────────────────────────────────────────
+  # Listing endpoint: visibility is filtered per-item in the handler (public
+  # tournaments always included; the caller's own non-public tournaments included
+  # only when authenticated), not by the generic per-operation x-roles check.
 
   /shells:
     get:
       tags: [TournamentShells]
-      summary: List public tournament shells as the authenticated user
-      description: Returns at most 100 public tournaments, including the authenticated user's roles.
-      operationId: listAuthenticatedTournamentShells
+      summary: List tournament shells
+      description: >
+        Returns public tournaments matching the supplied filters. When called with
+        a valid bearer token, also includes the caller's own non-public
+        tournaments, enriched with their role bitmask for each.
+      operationId: listTournamentShells
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/shellStartDate'
         - $ref: '#/components/parameters/shellEndDate'
@@ -406,7 +303,7 @@ paths:
         - $ref: '#/components/parameters/shellExample'
       responses:
         '200':
-          description: Public tournament shells with role information.
+          description: Tournament shells.
           content:
             application/json:
               schema:
@@ -414,8 +311,6 @@ paths:
                 maxItems: 100
                 items:
                   $ref: '#/components/schemas/TournamentShell'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
@@ -441,10 +336,16 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+  # ── Tournaments ──────────────────────────────────────────────────────────────
+  # GET follows the general visibility rule (public tournament → open to
+  # anyone; private → requires an Admin role assignment). PUT/DELETE always
+  # require Admin, regardless of public.
+
   /tournaments:
     post:
       tags: [Tournaments]
       summary: Create tournament
+      description: Creates the tournament and its initial Admin role assignment for the caller in one operation.
       operationId: createTournament
       requestBody:
         required: true
@@ -465,8 +366,11 @@ paths:
   /tournaments/{tournamentId}:
     get:
       tags: [Tournaments]
-      summary: Get tournament (authenticated)
+      summary: Get tournament
       operationId: getTournament
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -476,12 +380,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tournament'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
     put:
       tags: [Tournaments]
       summary: Update tournament
       operationId: updateTournament
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -503,6 +410,7 @@ paths:
       tags: [Tournaments]
       summary: Delete tournament
       operationId: deleteTournament
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -518,6 +426,7 @@ paths:
       tags: [Competitors]
       summary: List competitors
       operationId: listCompetitors
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -533,6 +442,7 @@ paths:
       tags: [Competitors]
       summary: Add competitor
       operationId: addCompetitor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -556,6 +466,7 @@ paths:
       tags: [Competitors]
       summary: Get competitor
       operationId: getCompetitor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/competitorId'
@@ -570,6 +481,7 @@ paths:
       tags: [Competitors]
       summary: Update competitor
       operationId: updateCompetitor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/competitorId'
@@ -590,6 +502,7 @@ paths:
       tags: [Competitors]
       summary: Remove competitor
       operationId: deleteCompetitor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/competitorId'
@@ -602,6 +515,7 @@ paths:
       tags: [Competitors]
       summary: Swap two competitors
       operationId: swapCompetitors
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - name: competitorOneId
@@ -625,6 +539,7 @@ paths:
       tags: [Sponsors]
       summary: List sponsors
       operationId: listSponsors
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -640,6 +555,7 @@ paths:
       tags: [Sponsors]
       summary: Add sponsor
       operationId: addSponsor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -661,6 +577,7 @@ paths:
       tags: [Sponsors]
       summary: Update sponsor
       operationId: updateSponsor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/sponsorId'
@@ -681,6 +598,7 @@ paths:
       tags: [Sponsors]
       summary: Remove sponsor
       operationId: deleteSponsor
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/sponsorId'
@@ -695,6 +613,7 @@ paths:
       tags: [LockerRooms]
       summary: Add locker room
       operationId: addLockerRoom
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -716,6 +635,7 @@ paths:
       tags: [LockerRooms]
       summary: Update locker room
       operationId: updateLockerRoom
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/lockerRoomId'
@@ -736,6 +656,7 @@ paths:
       tags: [LockerRooms]
       summary: Remove locker room
       operationId: deleteLockerRoom
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/lockerRoomId'
@@ -748,6 +669,7 @@ paths:
       tags: [LockerRooms]
       summary: Sync competitors assigned to locker room
       operationId: syncLockerRoomCompetitors
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/lockerRoomId'
@@ -773,6 +695,7 @@ paths:
       tags: [Recesses]
       summary: Add recess
       operationId: addRecess
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -794,6 +717,7 @@ paths:
       tags: [Recesses]
       summary: Remove recess
       operationId: deleteRecess
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/recessId'
@@ -802,12 +726,17 @@ paths:
           description: Recess removed.
 
   # ── Rules ─────────────────────────────────────────────────────────────────────
+  # GET follows the general visibility rule (public tournament → open; private
+  # → Admin only). Write operations always require Admin.
 
   /tournaments/{tournamentId}/rules:
     get:
       tags: [Rules]
       summary: List rules
       operationId: listRules
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -819,10 +748,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Rule'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags: [Rules]
       summary: Add rule
       operationId: addRule
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -844,6 +776,7 @@ paths:
       tags: [Rules]
       summary: Update rule
       operationId: updateRule
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/ruleId'
@@ -864,6 +797,7 @@ paths:
       tags: [Rules]
       summary: Remove rule
       operationId: deleteRule
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/ruleId'
@@ -876,6 +810,7 @@ paths:
       tags: [Rules]
       summary: Move rule up in priority
       operationId: rulesPriorityUp
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/ruleId'
@@ -883,28 +818,32 @@ paths:
         '200':
           description: Priority updated.
 
-  # ── Tournament Users ──────────────────────────────────────────────────────────
+  # ── Tournament Role Assignments ────────────────────────────────────────────────
+  # TournamentRoleAssignment is the only link between a User and a Tournament.
+  # Managing it always requires RoleAdmin.
 
-  /tournaments/{tournamentId}/users/{tournamentUserId}:
+  /tournaments/{tournamentId}/roleassignments/{roleAssignmentId}:
     delete:
-      tags: [TournamentUsers]
-      summary: Remove user from tournament
-      operationId: removeTournamentUser
+      tags: [TournamentRoleAssignments]
+      summary: Remove a role assignment from a tournament
+      operationId: removeTournamentRoleAssignment
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
-        - $ref: '#/components/parameters/tournamentUserId'
+        - $ref: '#/components/parameters/roleAssignmentId'
       responses:
         '204':
-          description: User removed.
+          description: Role assignment removed.
 
-  /tournaments/{tournamentId}/users/{tournamentUserId}/emailaddress:
+  /tournaments/{tournamentId}/roleassignments/{roleAssignmentId}/emailaddress:
     get:
-      tags: [TournamentUsers]
-      summary: Get email address of tournament user
-      operationId: getTournamentUserEmail
+      tags: [TournamentRoleAssignments]
+      summary: Get email address of a role assignment's user
+      operationId: getTournamentRoleAssignmentEmail
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
-        - $ref: '#/components/parameters/tournamentUserId'
+        - $ref: '#/components/parameters/roleAssignmentId'
       responses:
         '200':
           description: Email address.
@@ -917,25 +856,27 @@ paths:
                     type: string
                     format: email
 
-  /tournaments/{tournamentId}/users/{tournamentUserId}/roles/{role}:
+  /tournaments/{tournamentId}/roleassignments/{roleAssignmentId}/roles/{role}:
     post:
-      tags: [TournamentUsers]
-      summary: Add role to tournament user
-      operationId: addTournamentUserRole
+      tags: [TournamentRoleAssignments]
+      summary: Add a role bit to a role assignment
+      operationId: addTournamentRoleAssignmentRole
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
-        - $ref: '#/components/parameters/tournamentUserId'
+        - $ref: '#/components/parameters/roleAssignmentId'
         - $ref: '#/components/parameters/role'
       responses:
         '200':
           description: Role added.
     delete:
-      tags: [TournamentUsers]
-      summary: Remove role from tournament user
-      operationId: removeTournamentUserRole
+      tags: [TournamentRoleAssignments]
+      summary: Remove a role bit from a role assignment
+      operationId: removeTournamentRoleAssignmentRole
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
-        - $ref: '#/components/parameters/tournamentUserId'
+        - $ref: '#/components/parameters/roleAssignmentId'
         - $ref: '#/components/parameters/role'
       responses:
         '204':
@@ -948,6 +889,7 @@ paths:
       tags: [Invitations]
       summary: List invitations
       operationId: listInvitations
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -963,6 +905,7 @@ paths:
       tags: [Invitations]
       summary: Send invitation
       operationId: addInvitation
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -984,6 +927,7 @@ paths:
       tags: [Invitations]
       summary: Revoke invitation
       operationId: deleteInvitation
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/invitationId'
@@ -996,6 +940,7 @@ paths:
       tags: [Invitations]
       summary: Add role to invitation
       operationId: addInvitationRole
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/invitationId'
@@ -1007,6 +952,7 @@ paths:
       tags: [Invitations]
       summary: Remove role from invitation
       operationId: removeInvitationRole
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/invitationId'
@@ -1016,12 +962,16 @@ paths:
           description: Role removed.
 
   # ── Registrations ─────────────────────────────────────────────────────────────
+  # Submitting a registration follows the general visibility rule (public
+  # tournament → anyone can self-register; private → Admin only). Listing and
+  # managing registrations always requires RoleAdmin.
 
   /tournaments/{tournamentId}/categories/{categoryId}/registrations:
     get:
       tags: [Registrations]
       summary: List registrations for a category
       operationId: listRegistrations
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/categoryId'
@@ -1036,8 +986,11 @@ paths:
                   $ref: '#/components/schemas/Registration'
     post:
       tags: [Registrations]
-      summary: Add registration (admin)
+      summary: Submit a registration
       operationId: addRegistration
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/categoryId'
@@ -1049,17 +1002,22 @@ paths:
               $ref: '#/components/schemas/RegistrationRequest'
       responses:
         '201':
-          description: Registration added.
+          description: Registration submitted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Registration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /tournaments/{tournamentId}/categories/{categoryId}/registrations/{registrationId}:
     get:
       tags: [Registrations]
       summary: Get registration
       operationId: getRegistration
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/categoryId'
@@ -1075,6 +1033,7 @@ paths:
       tags: [Registrations]
       summary: Update registration (accept / decline)
       operationId: updateRegistration
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/categoryId'
@@ -1096,6 +1055,7 @@ paths:
       tags: [Registrations]
       summary: Delete registration
       operationId: deleteRegistration
+      x-roles: [RoleAdmin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
         - $ref: '#/components/parameters/categoryId'
@@ -1109,6 +1069,9 @@ paths:
       tags: [Registrations]
       summary: Get registration settings
       operationId: getRegistrationSettings
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       responses:
@@ -1118,10 +1081,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RegistrationSettings'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     put:
       tags: [Registrations]
       summary: Update registration settings
       operationId: updateRegistrationSettings
+      x-roles: [Admin]
       parameters:
         - $ref: '#/components/parameters/tournamentId'
       requestBody:
@@ -1191,8 +1157,8 @@ components:
       required: true
       schema:
         type: integer
-    tournamentUserId:
-      name: tournamentUserId
+    roleAssignmentId:
+      name: roleAssignmentId
       in: path
       required: true
       schema:
@@ -1373,6 +1339,12 @@ components:
           enum: [EditMode, ReadMode]
         public:
           type: boolean
+          description: >-
+            When true (default), the tournament, its rules, registration settings,
+            and shells listing are readable by anyone and anyone can submit a
+            registration. When false, only a caller with an Admin role
+            assignment can view or use it. Management actions always require
+            their specific role regardless of this flag.
         example:
           type: boolean
         intro:
@@ -1404,6 +1376,7 @@ components:
           nullable: true
         public:
           type: boolean
+          default: true
         theme:
           type: object
           nullable: true
@@ -1605,10 +1578,11 @@ components:
           type: string
           maxLength: 80
 
-    # ── TournamentUser ─────────────────────────────────────────────────────────
+    # ── TournamentRoleAssignment ───────────────────────────────────────────────
 
-    TournamentUser:
+    TournamentRoleAssignment:
       type: object
+      description: The only link between a User and a Tournament. Every tournament always has at least one Admin assignment.
       properties:
         id:
           type: integer
@@ -1616,7 +1590,7 @@ components:
           type: integer
         roles:
           type: integer
-          description: Bitmask of roles.
+          description: Bitmask of roles (Admin=1, RoleAdmin=2, GameResultAdmin=4, Referee=8).
 
     # ── Invitation ─────────────────────────────────────────────────────────────
 

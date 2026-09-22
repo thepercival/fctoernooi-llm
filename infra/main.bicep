@@ -1,7 +1,10 @@
+import { FoundryProjectRoleAssignment, FoundryProjectRoleAssignmentTemplate } from 'br/modules:types:latest'
+
 param location string = resourceGroup().location
 @minLength(3)
 param environment string
 param coreResourceGroupName string
+@secure()
 param entraAdminPrincipalId string
 
 param logAnalyticsWorkspace object
@@ -13,7 +16,7 @@ param appServiceBackend object
 param apiBackend object
 param mcpServer object
 
-// param appServiceFrontend object
+param appServiceFrontend object
 param openaiAccount object
 param openaiProject object
 // param apiFrontend object
@@ -26,7 +29,7 @@ var appServiceBackendName = '${appServiceBackend.name}-${environment}'
 // var cosmosDbAccountName = '${cosmosDb.name}-${environment}'
 var keyVaultName = '${keyVault.name}-${environment}'
 var dbName = database.name[environment]
-// var appServiceFrontendName = '${appServiceFrontend.name}-${environment}'
+var appServiceFrontendName = '${appServiceFrontend.name}-${environment}'
 
 
 
@@ -77,7 +80,7 @@ resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
 // }
 
 var dbPasswordSecretName = '${dbName}-db-password'
-module modAppServiceBackend 'modules/app-service.bicep' = {
+module modAppServiceBackend 'modules/app-service-backend.bicep' = {
   name: 'modAppServiceBackend'
   params: {
     appServiceName: appServiceBackendName
@@ -124,20 +127,11 @@ module modAppServiceBackend 'modules/app-service.bicep' = {
 // ///
 
 
-// 
-
 // OpenAI
-
-var principalIdsByVariableName = {
-  entraAdminPrincipalId: entraAdminPrincipalId
-}
-
-var projectRoleAssignments = map(openaiProject.roleAssignments, roleAssignment => {
-    projectPrincipalId: principalIdsByVariableName[roleAssignment.principalIdVarName]
-    projectPrincipalType: roleAssignment.principalType
-    roleDefinitionId: roleAssignment.roleDefinitionId
-})
-
+var projectRoleAssignmentTemplates FoundryProjectRoleAssignmentTemplate[] = openaiProject.roleAssignmentTemplates
+var projectRoleAssignments FoundryProjectRoleAssignment[] = [for roleAssignmentTemplate in projectRoleAssignmentTemplates: union(roleAssignmentTemplate, {
+  principalId: entraAdminPrincipalId
+})]
 
 module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.deploy[environment]) {
   name: 'modOpenaiProject'
@@ -151,53 +145,28 @@ module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.de
   }
 }
 
-
 // ── Frontend App Service ──────────────────────────────────────────────────────
 
-// Foundry agent endpoint is constructed from the account + project names
-// var foundryAgentEndpoint = 'https://${openaiAccount.name}.services.ai.azure.com/api/projects/${openaiProject.name}'
+var apiBaseUrl = appServiceFrontend.apiBaseUrl[environment]
+var apiKeySecretName = appServiceFrontend.apiKeySecretName
 
-// module modAppServiceFrontend 'modules/appService.bicep' = {
-//   name: 'modAppServiceFrontend'
-//   params: {
-//     appServiceName: appServiceFrontendName
-//     location: location
-//     appServicePlanId: modAppServicePlan.outputs.appServicePlanId
-//     applicationInsightsName: applicationInsightsName
-//     coreResourceGroupName: coreResourceGroupName
-//     linuxFxVersion: appServiceFrontend.linuxFxVersion
-//     additionEnvironmentVariables: [
-//       {
-//         name: 'FOUNDRY_AGENT_ENDPOINT'
-//         value: foundryAgentEndpoint
-//       }
-//       {
-//         name: 'FOUNDRY_AGENT_ID'
-//         value: appServiceFrontend.foundryAgentId
-//       }
-//       {
-//         // Backend API URL via APIM – key injected at startup via Key Vault reference
-//         name: 'API_BASEURL'
-//         value: 'https://${apimName}.azure-api.net/${apiBackend.properties.path}/${apiBackend.version}'
-//       }
-//     ]
-//   }
-// }
-
-// resource resFoundryProject 'Microsoft.CognitiveServices/accounts/projects@2026-03-01' existing = if(openaiAccount.deployOnEnvironment == environment) {
-//   name: '${openaiAccount.name}/${openaiProject.name}'
-// }
-
-// resource resFrontendFoundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(openaiAccount.deployOnEnvironment == environment) {
-//   // Cognitive Services OpenAI User
-//   name: guid(resFoundryProject.id, appServiceFrontendName, '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
-//   scope: resFoundryProject
-//   properties: {
-//     principalId: modAppServiceFrontend.outputs.principalId
-//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+// ── APIM: chatbot frontend ────────────────────────────────────────────────────
+module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
+  name: 'modAppServiceFrontend'
+  params: {
+    appServiceName: appServiceFrontendName
+    location: location
+    appKind: appServiceFrontend.kind
+    linuxFxVersion: appServiceFrontend.linuxFxVersion
+    appServicePlanId: modAppServicePlan.outputs.appServicePlanId
+    appInsightsConnectionString: resAppInsights.properties.ConnectionString
+    appInsightsWorkspaceResourceId: resAppInsights.properties.WorkspaceResourceId
+    withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
+    backendApiBaseUrl: apiBaseUrl
+    // Secret isn't provisioned for acc yet — keep the value empty there instead of failing the deployment.
+    backendApiKey: environment == 'acc' ? '' : resKeyVault.getSecret(apiKeySecretName)
+  }
+}
 
 
 // ── APIM: backend REST API ────────────────────────────────────────────────────
@@ -233,24 +202,8 @@ module modMcpServer 'modules/mcp-server.bicep' = {
   dependsOn: [modApimApi]
 }
 
-// ── APIM: chatbot frontend ────────────────────────────────────────────────────
-
-// module modApimApiFrontend 'modules/fctoernooi-frontend/api.bicep' = {
-//   name: 'modApimApiFrontend'
-//   scope: resourceGroup(coreResourceGroupName)
-//   params: {
-//     apiManagementName: apimName
-//     api: apiFrontend
-//     backend: {
-//       name: apiFrontend.backendName
-//       description: apiFrontend.backendDescription
-//       url: modAppServiceFrontend.outputs.url
-//     }
-//   }
-// }
-
 output backendUrl string = modAppServiceBackend.outputs.url
-// output frontendUrl string = modAppServiceFrontend.outputs.url
+output frontendUrl string = modAppServiceFrontend.outputs.url
 output apimGatewayUrl string = 'https://${apimName}.azure-api.net'
 output mcpServerUrl string = modMcpServer.outputs.mcpServerUrl
 output openaiAccountName string = openaiAccount.name

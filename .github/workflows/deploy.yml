@@ -45,6 +45,7 @@ jobs:
       environment: prd
       resource-group: rg-fctoernooi-prd
       core-resource-group: rg-core-prd
+      has-staging-slot: true
     secrets: inherit
 
 

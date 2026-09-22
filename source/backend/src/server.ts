@@ -9,7 +9,7 @@ import {
   MongoDb,
   type UserRecord, type TournamentRecord, type CompetitorRecord,
   type SponsorRecord, type LockerRoomRecord, type RecessRecord,
-  type RuleRecord, type TournamentUserRecord, type InvitationRecord,
+  type RuleRecord, type TournamentRoleAssignmentRecord, type InvitationRecord,
   type RegistrationRecord, type RegistrationSettingsRecord, type PaymentRecord,
 } from './db.js';
 import type { components } from './openapi.gen.js';
@@ -39,15 +39,21 @@ declare global {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const Role = { Admin: 1, GameAdmin: 2, RoleAdmin: 4 } as const;
+// Bitmask values must stay in sync with fctoernooi-api's domain/Role.php (source of truth).
+enum Role {
+  Admin = 1,
+  RoleAdmin = 2,
+  GameResultAdmin = 4,
+  Referee = 8,
+}
 
 function notFound(res: Response, msg = 'Not found'): void { res.status(404).json({ message: msg }); }
 function forbidden(res: Response): void { res.status(403).json({ message: 'Forbidden' }); }
 
-async function getTournamentUser(db: MongoDb, tournamentId: number, userId: number): Promise<TournamentUserRecord | null> {
-  return (await db.find<TournamentUserRecord>('tournamentUsers', { tournamentId, userId })).at(0) ?? null;
+async function getTournamentRoleAssignment(db: MongoDb, tournamentId: number, userId: number): Promise<TournamentRoleAssignmentRecord | null> {
+  return (await db.find<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', { tournamentId, userId })).at(0) ?? null;
 }
-function hasRole(tu: TournamentUserRecord, role: number): boolean { return (tu.roles & role) !== 0; }
+function hasRole(tu: TournamentRoleAssignmentRecord, role: number): boolean { return (tu.roles & role) !== 0; }
 
 function stripSensitive(u: UserRecord): S['User'] & { id: number } {
   const { passwordHash: _p, validateToken: _v, forgetPasswordToken: _f, ...safe } = u;
@@ -81,8 +87,8 @@ function toTournamentShell(tournament: TournamentRecord, roles = 0): S['Tourname
 }
 
 async function getRolesByTournament(db: MongoDb, userId: number): Promise<Map<number, number>> {
-  const tournamentUsers = await db.find<TournamentUserRecord>('tournamentUsers', { userId });
-  return new Map(tournamentUsers.map((tournamentUser) => [tournamentUser.tournamentId, tournamentUser.roles]));
+  const assignments = await db.find<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', { userId });
+  return new Map(assignments.map((assignment) => [assignment.tournamentId, assignment.roles]));
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -116,9 +122,9 @@ function buildApp(db: MongoDb): express.Express {
     }),
   );
 
-  // ── /public/auth ─────────────────────────────────────────────────────────
+  // ── /auth (public) ────────────────────────────────────────────────────────
 
-  app.post('/public/auth/register', async (req, res) => {
+  app.post('/auth/register', async (req, res) => {
     const { emailaddress, password } = req.body as S['RegisterRequest'];
     if ((await db.find<UserRecord>('users', { emailaddress })).length > 0) {
       res.status(409).json({ message: 'Email address already in use.' }); return;
@@ -131,7 +137,7 @@ function buildApp(db: MongoDb): express.Express {
     res.status(201).end();
   });
 
-  app.post('/public/auth/login', async (req, res) => {
+  app.post('/auth/login', async (req, res) => {
     const { emailaddress, password } = req.body as S['LoginRequest'];
     const user = (await db.find<UserRecord>('users', { emailaddress })).at(0);
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
@@ -140,14 +146,14 @@ function buildApp(db: MongoDb): express.Express {
     res.json({ token: signToken(user.id), userId: user.id } satisfies S['TokenResponse']);
   });
 
-  app.post('/public/auth/passwordreset', async (req, res) => {
+  app.post('/auth/passwordreset', async (req, res) => {
     const { emailaddress } = req.body as { emailaddress: string };
     const user = (await db.find<UserRecord>('users', { emailaddress })).at(0);
     if (user) await db.update<UserRecord>('users', user.id, { forgetPasswordToken: Math.random().toString(36).slice(2) });
     res.status(200).end();
   });
 
-  app.post('/public/auth/passwordchange', async (req, res) => {
+  app.post('/auth/passwordchange', async (req, res) => {
     const { emailaddress, password, token } = req.body as S['ChangePasswordRequest'];
     const user = (await db.find<UserRecord>('users', { emailaddress })).at(0);
     if (!user || user.forgetPasswordToken !== token) { res.status(400).json({ message: 'Invalid or expired reset token.' }); return; }
@@ -155,46 +161,58 @@ function buildApp(db: MongoDb): express.Express {
     res.status(200).end();
   });
 
-  app.get('/public/shells', async (req, res) => {
-    const tournaments = await db.find<TournamentRecord>('tournaments', { public: true });
-    res.json(tournaments
+  // ── Tournament shells / tournament / rules / registration settings ────────
+  // Visibility follows the general rule: tournament.public → open to anyone;
+  // private → requires an Admin role assignment.
+
+  app.get('/shells', async (req, res) => {
+    const rolesByTournament = req.userId ? await getRolesByTournament(db, req.userId) : new Map<number, number>();
+    const publicTournaments = await db.find<TournamentRecord>('tournaments', { public: true });
+    const ownPrivateTournaments = rolesByTournament.size > 0
+      ? (await db.find<TournamentRecord>('tournaments', { public: false })).filter((t) => rolesByTournament.has(t.id))
+      : [];
+    res.json([...publicTournaments, ...ownPrivateTournaments]
       .filter((tournament) => matchesShellFilters(tournament, req.query))
       .slice(0, 100)
-      .map((tournament) => toTournamentShell(tournament)));
+      .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
   });
 
-  app.get('/public/tournaments/:tournamentId', async (req, res) => {
+  app.get('/shellswithrole', async (req, res) => {
+    const requestedRoles = Number(req.query.roles ?? 0);
+    const [tournaments, rolesByTournament] = await Promise.all([
+      db.find<TournamentRecord>('tournaments', { example: false }),
+      getRolesByTournament(db, req.userId!),
+    ]);
+    res.json(tournaments
+      .filter((tournament) => ((rolesByTournament.get(tournament.id) ?? 0) & requestedRoles) !== 0)
+      .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
+  });
+
+  async function canViewNonPublicTournament(tournamentId: number, userId?: number): Promise<boolean> {
+    const tu = userId ? await getTournamentRoleAssignment(db, tournamentId, userId) : null;
+    return !!tu && hasRole(tu, Role.Admin);
+  }
+
+  app.post('/tournaments', async (req, res) => {
+    const body = req.body as S['TournamentRequest'];
+    const tournament = await db.create<TournamentRecord>('tournaments', {
+      createdDateTime: new Date().toISOString(), startEditMode: 'EditMode',
+      example: false, location: null, logoExtension: null, theme: null,
+      ...body,
+      public: body.public ?? true,
+    });
+    await db.create<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', {
+      tournamentId: tournament.id, userId: req.userId!,
+      roles: Role.Admin | Role.RoleAdmin | Role.GameResultAdmin,
+    });
+    res.status(201).json(tournament);
+  });
+
+  app.get('/tournaments/:tournamentId', async (req, res) => {
     const t = await db.findOne<TournamentRecord>('tournaments', Number(req.params.tournamentId));
     if (!t) { notFound(res); return; }
-    if (!t.public) { res.status(403).json({ message: 'Tournament is not public.' }); return; }
+    if (!t.public && !(await canViewNonPublicTournament(t.id, req.userId))) { forbidden(res); return; }
     res.json(t);
-  });
-
-  app.get('/public/tournaments/:tournamentId/structure', async (req, res) => {
-    const t = await db.findOne<TournamentRecord>('tournaments', Number(req.params.tournamentId));
-    if (!t) { notFound(res); return; }
-    res.json({ tournamentId: t.id });
-  });
-
-  app.get('/public/tournaments/:tournamentId/rules', async (req, res) => {
-    const tournamentId = Number(req.params.tournamentId);
-    res.json((await db.find<RuleRecord>('rules', { tournamentId })).sort((a, b) => a.priority - b.priority));
-  });
-
-  app.get('/public/tournaments/:tournamentId/registrations/settings', async (req, res) => {
-    const settings = await db.getRegistrationSettings(Number(req.params.tournamentId));
-    if (!settings) { notFound(res, 'Registration settings not found.'); return; }
-    res.json(settings);
-  });
-
-  app.post('/public/tournaments/:tournamentId/categories/:categoryId/registrations', async (req, res) => {
-    const tournamentId = Number(req.params.tournamentId);
-    if (!(await db.findOne<TournamentRecord>('tournaments', tournamentId))) { notFound(res, 'Tournament not found.'); return; }
-    const body = req.body as S['RegistrationRequest'];
-    res.status(201).json(await db.create<RegistrationRecord>('registrations', {
-      tournamentId, categoryNr: Number(req.params.categoryId), state: 'Pending', competitorId: null,
-      name: body.name, emailaddress: body.emailaddress, telephone: body.telephone, info: body.info ?? null,
-    }));
   });
 
   // ── /auth ─────────────────────────────────────────────────────────────────
@@ -270,53 +288,11 @@ function buildApp(db: MongoDb): express.Express {
     res.json(payment);
   });
 
-  // ── /tournaments ──────────────────────────────────────────────────────────
-
-  app.get('/shells', async (req, res) => {
-    const [tournaments, rolesByTournament] = await Promise.all([
-      db.find<TournamentRecord>('tournaments', { public: true }),
-      getRolesByTournament(db, req.userId!),
-    ]);
-    res.json(tournaments
-      .filter((tournament) => matchesShellFilters(tournament, req.query))
-      .slice(0, 100)
-      .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
-  });
-
-  app.get('/shellswithrole', async (req, res) => {
-    const requestedRoles = Number(req.query.roles ?? 0);
-    const [tournaments, rolesByTournament] = await Promise.all([
-      db.find<TournamentRecord>('tournaments', { example: false }),
-      getRolesByTournament(db, req.userId!),
-    ]);
-    res.json(tournaments
-      .filter((tournament) => ((rolesByTournament.get(tournament.id) ?? 0) & requestedRoles) !== 0)
-      .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
-  });
-
-  app.post('/tournaments', async (req, res) => {
-    const tournament = await db.create<TournamentRecord>('tournaments', {
-      createdDateTime: new Date().toISOString(), startEditMode: 'EditMode',
-      example: false, location: null, logoExtension: null, theme: null,
-      public: false,
-      ...(req.body as S['TournamentRequest']),
-    });
-    await db.create<TournamentUserRecord>('tournamentUsers', {
-      tournamentId: tournament.id, userId: req.userId!,
-      roles: Role.Admin | Role.GameAdmin | Role.RoleAdmin,
-    });
-    res.status(201).json(tournament);
-  });
-
-  app.get('/tournaments/:tournamentId', async (req, res) => {
-    const t = await db.findOne<TournamentRecord>('tournaments', Number(req.params.tournamentId));
-    if (!t) { notFound(res); return; }
-    res.json(t);
-  });
+  // ── /tournaments (write) ──────────────────────────────────────────────────
 
   app.put('/tournaments/:tournamentId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const updated = await db.update<TournamentRecord>('tournaments', tournamentId, req.body as S['TournamentRequest']);
     if (!updated) { notFound(res); return; }
@@ -325,7 +301,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     await db.delete('tournaments', tournamentId);
     res.status(204).end();
@@ -339,7 +315,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/competitors', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     res.status(201).json(await db.create<CompetitorRecord>('competitors', {
       tournamentId, present: false, logoExtension: null, publicInfo: null,
@@ -356,7 +332,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.put('/tournaments/:tournamentId/competitors/:competitorId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const id = Number(req.params.competitorId);
     const existing = await db.findOne<CompetitorRecord>('competitors', id);
@@ -366,7 +342,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/competitors/:competitorId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     await db.delete('competitors', Number(req.params.competitorId));
     res.status(204).end();
@@ -374,7 +350,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.put('/tournaments/:tournamentId/competitors/:competitorOneId/:competitorTwoId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const [a, b] = await Promise.all([
       db.findOne<CompetitorRecord>('competitors', Number(req.params.competitorOneId)),
@@ -396,7 +372,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/sponsors', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     res.status(201).json(await db.create<SponsorRecord>('sponsors', {
       tournamentId, url: null, logoExtension: null,
@@ -407,7 +383,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.put('/tournaments/:tournamentId/sponsors/:sponsorId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const id = Number(req.params.sponsorId);
     const existing = await db.findOne<SponsorRecord>('sponsors', id);
@@ -417,7 +393,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/sponsors/:sponsorId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     await db.delete('sponsors', Number(req.params.sponsorId));
     res.status(204).end();
@@ -427,7 +403,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/lockerrooms', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const lr = await db.create<LockerRoomRecord>('lockerRooms', { tournamentId, ...(req.body as S['LockerRoomRequest']) });
     res.status(201).json({ ...lr, competitors: [] } satisfies S['LockerRoom']);
@@ -435,7 +411,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.put('/tournaments/:tournamentId/lockerrooms/:lockerRoomId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const id = Number(req.params.lockerRoomId);
     const existing = await db.findOne<LockerRoomRecord>('lockerRooms', id);
@@ -449,7 +425,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/lockerrooms/:lockerRoomId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const id = Number(req.params.lockerRoomId);
     await db.deleteLockerRoomCompetitors(id);
@@ -459,7 +435,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/lockerrooms/:lockerRoomId/synccompetitors', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     await db.setLockerRoomCompetitors(Number(req.params.lockerRoomId), (req.body as { competitorIds: number[] }).competitorIds);
     res.status(200).end();
@@ -469,14 +445,14 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/recesses', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     res.status(201).json(await db.create<RecessRecord>('recesses', { tournamentId, ...(req.body as S['RecessRequest']) }));
   });
 
   app.delete('/tournaments/:tournamentId/recesses/:recessId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     await db.delete('recesses', Number(req.params.recessId));
     res.status(204).end();
@@ -486,12 +462,15 @@ function buildApp(db: MongoDb): express.Express {
 
   app.get('/tournaments/:tournamentId/rules', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
+    const t = await db.findOne<TournamentRecord>('tournaments', tournamentId);
+    if (!t) { notFound(res); return; }
+    if (!t.public && !(await canViewNonPublicTournament(tournamentId, req.userId))) { forbidden(res); return; }
     res.json((await db.find<RuleRecord>('rules', { tournamentId })).sort((a, b) => a.priority - b.priority));
   });
 
   app.post('/tournaments/:tournamentId/rules', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const count = (await db.find<RuleRecord>('rules', { tournamentId })).length;
     res.status(201).json(await db.create<RuleRecord>('rules', {
@@ -501,7 +480,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.put('/tournaments/:tournamentId/rules/:ruleId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const id = Number(req.params.ruleId);
     const existing = await db.findOne<RuleRecord>('rules', id);
@@ -511,7 +490,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/rules/:ruleId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     await db.delete('rules', Number(req.params.ruleId));
     res.status(204).end();
@@ -519,7 +498,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/rules/:ruleId/priorityup', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const id = Number(req.params.ruleId);
     const rules = (await db.find<RuleRecord>('rules', { tournamentId })).sort((a, b) => a.priority - b.priority);
@@ -534,44 +513,44 @@ function buildApp(db: MongoDb): express.Express {
     res.status(200).end();
   });
 
-  // ── tournament users ───────────────────────────────────────────────────────
+  // ── tournament role assignments ────────────────────────────────────────────
 
-  app.delete('/tournaments/:tournamentId/users/:tournamentUserId', async (req, res) => {
+  app.delete('/tournaments/:tournamentId/roleassignments/:roleAssignmentId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
-    await db.delete('tournamentUsers', Number(req.params.tournamentUserId));
+    await db.delete('tournamentRoleAssignments', Number(req.params.roleAssignmentId));
     res.status(204).end();
   });
 
-  app.get('/tournaments/:tournamentId/users/:tournamentUserId/emailaddress', async (req, res) => {
+  app.get('/tournaments/:tournamentId/roleassignments/:roleAssignmentId/emailaddress', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
-    const targetTu = await db.findOne<TournamentUserRecord>('tournamentUsers', Number(req.params.tournamentUserId));
-    if (!targetTu) { notFound(res); return; }
-    res.json({ emailaddress: (await db.findOne<UserRecord>('users', targetTu.userId))?.emailaddress ?? null });
+    const target = await db.findOne<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', Number(req.params.roleAssignmentId));
+    if (!target) { notFound(res); return; }
+    res.json({ emailaddress: (await db.findOne<UserRecord>('users', target.userId))?.emailaddress ?? null });
   });
 
-  app.post('/tournaments/:tournamentId/users/:tournamentUserId/roles/:role', async (req, res) => {
+  app.post('/tournaments/:tournamentId/roleassignments/:roleAssignmentId/roles/:role', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
-    const id = Number(req.params.tournamentUserId);
-    const target = await db.findOne<TournamentUserRecord>('tournamentUsers', id);
+    const id = Number(req.params.roleAssignmentId);
+    const target = await db.findOne<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', id);
     if (!target) { notFound(res); return; }
-    await db.update<TournamentUserRecord>('tournamentUsers', id, { roles: target.roles | Number(req.params.role) });
+    await db.update<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', id, { roles: target.roles | Number(req.params.role) });
     res.status(200).end();
   });
 
-  app.delete('/tournaments/:tournamentId/users/:tournamentUserId/roles/:role', async (req, res) => {
+  app.delete('/tournaments/:tournamentId/roleassignments/:roleAssignmentId/roles/:role', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
-    const id = Number(req.params.tournamentUserId);
-    const target = await db.findOne<TournamentUserRecord>('tournamentUsers', id);
+    const id = Number(req.params.roleAssignmentId);
+    const target = await db.findOne<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', id);
     if (!target) { notFound(res); return; }
-    await db.update<TournamentUserRecord>('tournamentUsers', id, { roles: target.roles & ~Number(req.params.role) });
+    await db.update<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', id, { roles: target.roles & ~Number(req.params.role) });
     res.status(204).end();
   });
 
@@ -579,14 +558,14 @@ function buildApp(db: MongoDb): express.Express {
 
   app.get('/tournaments/:tournamentId/invitations', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     res.json(await db.find<InvitationRecord>('invitations', { tournamentId }));
   });
 
   app.post('/tournaments/:tournamentId/invitations', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     res.status(201).json(await db.create<InvitationRecord>('invitations', {
       tournamentId, createdDateTime: new Date().toISOString(), ...(req.body as S['InvitationRequest']),
@@ -595,7 +574,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/invitations/:invitationId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     await db.delete('invitations', Number(req.params.invitationId));
     res.status(204).end();
@@ -603,7 +582,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/tournaments/:tournamentId/invitations/:invitationId/roles/:role', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     const id = Number(req.params.invitationId);
     const inv = await db.findOne<InvitationRecord>('invitations', id);
@@ -614,7 +593,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/invitations/:invitationId/roles/:role', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     const id = Number(req.params.invitationId);
     const inv = await db.findOne<InvitationRecord>('invitations', id);
@@ -627,15 +606,16 @@ function buildApp(db: MongoDb): express.Express {
 
   app.get('/tournaments/:tournamentId/categories/:categoryId/registrations', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     res.json(await db.find<RegistrationRecord>('registrations', { tournamentId, categoryNr: Number(req.params.categoryId) }));
   });
 
   app.post('/tournaments/:tournamentId/categories/:categoryId/registrations', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
-    if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
+    const t = await db.findOne<TournamentRecord>('tournaments', tournamentId);
+    if (!t) { notFound(res, 'Tournament not found.'); return; }
+    if (!t.public && !(await canViewNonPublicTournament(tournamentId, req.userId))) { forbidden(res); return; }
     const body = req.body as S['RegistrationRequest'];
     res.status(201).json(await db.create<RegistrationRecord>('registrations', {
       tournamentId, categoryNr: Number(req.params.categoryId), state: 'Pending', competitorId: null,
@@ -645,7 +625,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.get('/tournaments/:tournamentId/categories/:categoryId/registrations/:registrationId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     const reg = await db.findOne<RegistrationRecord>('registrations', Number(req.params.registrationId));
     if (!reg || reg.tournamentId !== tournamentId) { notFound(res); return; }
@@ -654,7 +634,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.put('/tournaments/:tournamentId/categories/:categoryId/registrations/:registrationId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     const id = Number(req.params.registrationId);
     const existing = await db.findOne<RegistrationRecord>('registrations', id);
@@ -664,7 +644,7 @@ function buildApp(db: MongoDb): express.Express {
 
   app.delete('/tournaments/:tournamentId/categories/:categoryId/registrations/:registrationId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.RoleAdmin)) { forbidden(res); return; }
     await db.delete('registrations', Number(req.params.registrationId));
     res.status(204).end();
@@ -673,14 +653,18 @@ function buildApp(db: MongoDb): express.Express {
   // ── registration settings ─────────────────────────────────────────────────
 
   app.get('/tournaments/:tournamentId/registrations/settings', async (req, res) => {
-    const settings = await db.getRegistrationSettings(Number(req.params.tournamentId));
+    const tournamentId = Number(req.params.tournamentId);
+    const t = await db.findOne<TournamentRecord>('tournaments', tournamentId);
+    if (!t) { notFound(res); return; }
+    if (!t.public && !(await canViewNonPublicTournament(tournamentId, req.userId))) { forbidden(res); return; }
+    const settings = await db.getRegistrationSettings(tournamentId);
     if (!settings) { notFound(res, 'Registration settings not found.'); return; }
     res.json(settings);
   });
 
   app.put('/tournaments/:tournamentId/registrations/settings', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
-    const tu = await getTournamentUser(db, tournamentId, req.userId!);
+    const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
     const body = req.body as S['RegistrationSettingsRequest'];
     res.json(await db.setRegistrationSettings(tournamentId, {

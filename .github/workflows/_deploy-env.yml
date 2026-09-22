@@ -12,6 +12,10 @@ on:
       core-resource-group:
         required: true
         type: string
+      has-staging-slot:
+        required: false
+        type: boolean
+        default: false
     secrets:
       AZURE_CLIENT_ID:
         required: true
@@ -20,6 +24,8 @@ on:
       AZURE_SUBSCRIPTION_ID:
         required: true
       ENTRA_ADMINPRINCIPAL_ID:
+        required: true
+      AZURE_ENT_APP_APPLICATION_ID:
         required: true
 
 jobs:
@@ -50,17 +56,68 @@ jobs:
               --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy Azure Resources to ${{ inputs.environment }}
+        id: infra
         uses: azure/cli@v3
         with:
           azcliversion: latest
           inlineScript: |
-            az deployment group create \
+            OUTPUTS=$(az deployment group create \
               --resource-group ${{ inputs.resource-group }} \
               --template-file infra/main.bicep \
               --parameters infra/parameters.json \
               --parameters coreResourceGroupName=${{ inputs.core-resource-group }} \
               --parameters environment=${{ inputs.environment }} \
-              --parameters entraAdminPrincipalId=${{ secrets.ENTRA_ADMINPRINCIPAL_ID }}
+              --parameters entraAdminPrincipalId=${{ secrets.ENTRA_ADMINPRINCIPAL_ID }} \
+              --query properties.outputs -o json)
+            echo "$OUTPUTS" | jq -r 'to_entries[] | "\(.key)=\(.value.value)"' >> "$GITHUB_OUTPUT"
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      # - name: Grant CI service principal Foundry data-plane role
+      #   # azd (unlike the bicep step above) talks to the Foundry Agent Service
+      #   # data-plane API, which needs a Foundry-specific RBAC role — NOT the
+      #   # generic "Cognitive Services" roles (Microsoft's own docs say those
+      #   # don't apply to Foundry scenarios: https://learn.microsoft.com/azure/foundry/concepts/rbac-foundry).
+      #   # Model-deployment management is already covered by the existing
+      #   # Contributor role on the resource group ("Users with the Contributor
+      #   # role can deploy models in Foundry" per the same docs).
+      #   # Idempotent: `|| true` ignores the "already exists" error on reruns.
+      #   env:
+      #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      #   run: |
+      #     SP_OBJECT_ID=$(az ad sp show --id "$AZURE_CLIENT_ID" --query id -o tsv)
+      #     # "Publish agents" is only granted at the Foundry resource (account) scope, not project scope.
+      #     ACCOUNT_SCOPE="/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ inputs.core-resource-group }}/providers/Microsoft.CognitiveServices/accounts/ais-cdk-${{ inputs.environment }}"
+
+      #     # Foundry Project Manager — build/develop (data actions), publish agents, interact with agent endpoints.
+      #     az role assignment create --assignee-object-id "$SP_OBJECT_ID" --assignee-principal-type ServicePrincipal \
+      #       --role "eadc314b-1a2d-4efa-be10-5d325db5065e" --scope "$ACCOUNT_SCOPE" || true
+
+      - name: Deploy hosted agents
+        # Must run after the bicep step: hosted agents provision against the
+        # Foundry project (ais-cdk-<env>/aisp-fctoernooi-<env>) that bicep creates.
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          FOUNDRY_PROJECT_ENDPOINT: https://ais-cdk-${{ inputs.environment }}.services.ai.azure.com/api/projects/aisp-fctoernooi-${{ inputs.environment }}
+        run: |
+          azd extension install microsoft.foundry -y
+          azd auth login --client-id "$AZURE_CLIENT_ID" --federated-credential-provider github-actions --tenant-id "$AZURE_TENANT_ID"
+          for agent_dir in infra/agents/hosted-agents/*/; do
+            [ -f "${agent_dir}azure.yaml" ] || continue
+            echo "::group::Deploying hosted agent: ${agent_dir}"
+            pushd "$agent_dir"
+            azd env select ${{ inputs.environment }} 2>/dev/null || azd env new ${{ inputs.environment }} --no-prompt
+            azd env set AZURE_SUBSCRIPTION_ID "$AZURE_SUBSCRIPTION_ID"
+            azd env set FOUNDRY_PROJECT_ENDPOINT "$FOUNDRY_PROJECT_ENDPOINT"
+            azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME "gpt-5-mini"
+            azd provision --no-prompt
+            azd deploy --no-prompt
+            popd
+            echo "::endgroup::"
+          done
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -81,3 +138,49 @@ jobs:
         with:
           app-name: as-fctoernooi-api-${{ inputs.environment }}
           package: source/backend
+          slot-name: ${{ inputs.has-staging-slot && 'staging' || 'production' }}
+
+      - name: Swap staging into production (API backend)
+        if: ${{ inputs.has-staging-slot }}
+        uses: azure/cli@v3
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az webapp deployment slot swap \
+              --resource-group ${{ inputs.resource-group }} \
+              --name as-fctoernooi-api-${{ inputs.environment }} \
+              --slot staging \
+              --target-slot production
+
+      - name: Set up Node.js for frontend
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: source/frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: source/frontend
+        run: |
+          npm ci
+          npm run build
+          npm prune --omit=dev
+
+      - name: Deploy App Service for Frontend
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: as-fctoernooi-frontend-${{ inputs.environment }}
+          package: source/frontend
+          slot-name: ${{ inputs.has-staging-slot && 'staging' || 'production' }}
+
+      - name: Swap staging into production (Frontend)
+        if: ${{ inputs.has-staging-slot }}
+        uses: azure/cli@v3
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az webapp deployment slot swap \
+              --resource-group ${{ inputs.resource-group }} \
+              --name as-fctoernooi-frontend-${{ inputs.environment }} \
+              --slot staging \
+              --target-slot production

@@ -1,0 +1,24 @@
+{
+  "name": "fctoernooi-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Node TypeScript app that renders public tournament shells from the FCToernooi API",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
