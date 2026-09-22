@@ -25,8 +25,6 @@ on:
         required: true
       ENTRA_ADMINPRINCIPAL_ID:
         required: true
-      AZURE_ENT_APP_APPLICATION_ID:
-        required: true
 
 jobs:
   deploy:
