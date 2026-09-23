@@ -703,6 +703,12 @@ export interface components {
             /** Format: email */
             emailaddress: string;
             password: string;
+            /**
+             * @description 'agent' accounts authenticate the same way as 'human' ones (login with emailaddress/password) but are restricted to read-only (GET) requests regardless of their tournament role assignments. Defaults to 'human'.
+             * @default human
+             * @enum {string}
+             */
+            subType: "human" | "agent";
         };
         LoginRequest: {
             /** Format: email */
@@ -726,6 +732,8 @@ export interface components {
             name?: string | null;
             validated?: boolean;
             nrOfCredits?: number;
+            /** @enum {string} */
+            subType?: "human" | "agent";
         };
         UserUpdateRequest: {
             /** Format: email */

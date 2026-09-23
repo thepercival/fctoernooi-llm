@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("fctoernooi-chat-agent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6300f7a00afb9d81e8991290498ebe770f0ff756")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+41644befa24d61781cfb2995f9cb67acb5e7e3fb")]
 [assembly: System.Reflection.AssemblyProductAttribute("fctoernooi-chat-agent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("fctoernooi-chat-agent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

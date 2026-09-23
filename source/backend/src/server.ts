@@ -28,13 +28,13 @@ type S = components['schemas'];
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
-type JwtPayload = { userId: number };
-function signToken(userId: number): string { return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }); }
+type JwtPayload = { userId: number; subType: S['User']['subType'] };
+function signToken(userId: number, subType: S['User']['subType']): string { return jwt.sign({ userId, subType }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }); }
 function verifyToken(token: string): JwtPayload { return jwt.verify(token, JWT_SECRET) as JwtPayload; }
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express { interface Request { userId?: number; } }
+  namespace Express { interface Request { userId?: number; subType?: S['User']['subType']; } }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -114,8 +114,12 @@ function buildApp(db: MongoDb): express.Express {
           bearerAuth: (req: Request, _scopes: string[], _schema: unknown) => {
             const header = req.headers.authorization;
             if (!header?.startsWith('Bearer ')) return Promise.resolve(false);
-            try { req.userId = verifyToken(header.slice(7)).userId; return Promise.resolve(true); }
-            catch { return Promise.resolve(false); }
+            try {
+              const payload = verifyToken(header.slice(7));
+              req.userId = payload.userId;
+              req.subType = payload.subType;
+              return Promise.resolve(true);
+            } catch { return Promise.resolve(false); }
           },
         },
       },
@@ -125,13 +129,13 @@ function buildApp(db: MongoDb): express.Express {
   // ── /auth (public) ────────────────────────────────────────────────────────
 
   app.post('/auth/register', async (req, res) => {
-    const { emailaddress, password } = req.body as S['RegisterRequest'];
+    const { emailaddress, password, subType } = req.body as S['RegisterRequest'];
     if ((await db.find<UserRecord>('users', { emailaddress })).length > 0) {
       res.status(409).json({ message: 'Email address already in use.' }); return;
     }
     await db.create<UserRecord>('users', {
       emailaddress, passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
-      name: null, validated: false, nrOfCredits: 0,
+      name: null, validated: false, nrOfCredits: 0, subType: subType ?? 'human',
       validateToken: Math.random().toString(36).slice(2), forgetPasswordToken: null,
     });
     res.status(201).end();
@@ -143,7 +147,7 @@ function buildApp(db: MongoDb): express.Express {
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       res.status(401).json({ message: 'Invalid credentials.' }); return;
     }
-    res.json({ token: signToken(user.id), userId: user.id } satisfies S['TokenResponse']);
+    res.json({ token: signToken(user.id, user.subType), userId: user.id } satisfies S['TokenResponse']);
   });
 
   app.post('/auth/passwordreset', async (req, res) => {
@@ -217,7 +221,7 @@ function buildApp(db: MongoDb): express.Express {
 
   // ── /auth ─────────────────────────────────────────────────────────────────
 
-  app.post('/auth/extendtoken', (req, res) => { res.json({ token: signToken(req.userId!), userId: req.userId }); });
+  app.post('/auth/extendtoken', (req, res) => { res.json({ token: signToken(req.userId!, req.subType!), userId: req.userId }); });
 
   app.post('/auth/validate/:code', async (req, res) => {
     const user = await db.findOne<UserRecord>('users', req.userId!);

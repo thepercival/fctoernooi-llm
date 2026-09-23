@@ -19,7 +19,6 @@ param mcpServer object
 param appServiceFrontend object
 param openaiAccount object
 param openaiProject object
-// param apiFrontend object
 param database object
 
 var apimName = '${apim.name}-${environment}'
@@ -148,7 +147,6 @@ module modOpenaiProject 'br/modules:openai-project:latest' = if(openaiProject.de
 // ── Frontend App Service ──────────────────────────────────────────────────────
 
 var apiBaseUrl = appServiceFrontend.apiBaseUrl[environment]
-var apiKeySecretName = appServiceFrontend.apiKeySecretName
 
 // ── APIM: chatbot frontend ────────────────────────────────────────────────────
 module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
@@ -164,7 +162,7 @@ module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
     withStagingSlot: appServicePlan.sku[environment].tier == 'Standard' ? true : false
     backendApiBaseUrl: apiBaseUrl
     // Secret isn't provisioned for acc yet — keep the value empty there instead of failing the deployment.
-    backendApiKey: environment == 'acc' ? '' : resKeyVault.getSecret(apiKeySecretName)
+    backendApiKey: ''
   }
 }
 

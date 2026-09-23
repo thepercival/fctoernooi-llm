@@ -84,8 +84,7 @@
                     "dev": "https://apim-cdk-dev.azure-api.net/fctoernooi-api/v1",
                     "acc": "https://apim-cdk-acc.azure-api.net/fctoernooi-api/v1",
                     "prd": "https://apim-cdk-prd.azure-api.net/fctoernooi-api/v1"
-                },
-                "apiKeySecretName": "fctoernooi-api-key"
+                }
             }
         },
         "apiBackend": {

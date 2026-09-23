@@ -4,7 +4,7 @@ See [readme.md](../readme.md) for architecture, component list, and CI/CD flow d
 
 ## Structure
 - `source/backend` — Node/Express/TS API (MCP tool implementations), Mongo-backed. Not the PHP `fctoernooi-api-old` repo.
-- `source/frontend` — minimal Node/Express/TS app, renders public tournament shells (`GET /shells`) server-side. Env vars: `FCTOERNOOI_API_BASEURL` (shared, APIM gateway URL), `FCTOERNOOI_API_KEY` (production-only, from Key Vault secret `fctoernooi-api-key`; empty for `acc` since that secret isn't provisioned there).
+- `source/frontend` — minimal Node/Express/TS app, renders public tournament shells (`GET /shells`) server-side. Env vars: `FCTOERNOOI_API_BASEURL` (shared, APIM gateway URL)
 - `infra/` — `main.bicep` (all resources), `parameters.json` (single file, env-specific values passed as extra `--parameters key=value` overrides by CI, not per-env parameter files), `openapi.yaml` (mirrors the PHP API spec), `mcp-tools.json` (MCP tool list consumed via `loadJsonContent`), `modules/mcp-server.bicep`, `modules/app-service-backend.bicep` / `modules/app-service-frontend.bicep` (both wrap `br/modules:app-service:latest`), `agents/*.agent.json` (Foundry prompt agent definitions).
 - Deploy: `.github/workflows/_deploy-env.yml` runs `az deployment group create --template-file infra/main.bicep --parameters infra/parameters.json ...` directly — `infra/main.json` is stale/unused, don't keep it in sync.
 - App code deploy: only `prd` (Standard plan tier, `has-staging-slot: true` in [deploy.yml](../.github/workflows/deploy.yml)) deploys to the `staging` slot then swaps. `dev`/`acc` are Basic tier (no slot support) and deploy straight to production. Both `as-fctoernooi-api-<env>` and `as-fctoernooi-frontend-<env>` follow this same pattern.

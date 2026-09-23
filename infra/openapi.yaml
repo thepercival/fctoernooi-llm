@@ -1260,6 +1260,14 @@ components:
         password:
           type: string
           minLength: 8
+        subType:
+          description: >-
+            'agent' accounts authenticate the same way as 'human' ones (login with
+            emailaddress/password) but are restricted to read-only (GET) requests
+            regardless of their tournament role assignments. Defaults to 'human'.
+          type: string
+          enum: [human, agent]
+          default: human
 
     LoginRequest:
       type: object
@@ -1311,6 +1319,9 @@ components:
           type: boolean
         nrOfCredits:
           type: integer
+        subType:
+          type: string
+          enum: [human, agent]
 
     UserUpdateRequest:
       type: object

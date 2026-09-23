@@ -44,6 +44,9 @@ resource resAppService 'Microsoft.Web/sites@2024-11-01' existing = {
   name: appServiceName
 }
 
+/**
+ * Web configuration for the App Service
+ */
 resource resAppServiceWebConfig 'Microsoft.Web/sites/config@2024-11-01' = {
   parent: resAppService
   name: 'web'
