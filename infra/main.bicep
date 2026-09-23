@@ -187,6 +187,7 @@ module modApimApi 'br/modules:apim-api:latest' = {
 // ── APIM: MCP server (exposes API operations as tools for AI agents) ─────────
 // Tool list lives in mcp-tools.json, generated from openapi.yaml operationIds
 
+
 module modMcpServer 'modules/mcp-server.bicep' = {
   name: 'modMcpServer'
   scope: resourceGroup(coreResourceGroupName)
