@@ -201,6 +201,7 @@ module modMcpServer 'modules/mcp-server.bicep' = {
   dependsOn: [modApimApi]
 }
 
+
 output backendUrl string = modAppServiceBackend.outputs.url
 output frontendUrl string = modAppServiceFrontend.outputs.url
 output apimGatewayUrl string = 'https://${apimName}.azure-api.net'
