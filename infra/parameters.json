@@ -90,7 +90,6 @@
         "apiBackend": {
             "value": {
                 "name": "fctoernooi-api",
-                "openapiLink": "https://raw.githubusercontent.com/thepercival/fctoernooi-llm/feature/dev-deploy-on-push/infra/openapi.yaml",
                 "version": "v1",
                 "backendName": "fctoernooi-api-backend",
                 "backendDescription": "FCToernooi REST API App Service",

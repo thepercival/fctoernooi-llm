@@ -175,7 +175,8 @@ module modApimApi 'br/modules:apim-api:latest' = {
   params: {
     apiManagementName: apimName
     api: apiBackend
-    openapiLink: apiBackend.openapiLink
+    // Backend serves its own spec at /openapi.yaml — avoids APIM's flaky fetches from raw.githubusercontent.com.
+    openapiLink: '${modAppServiceBackend.outputs.url}/openapi.yaml'
     backend: {
       name: apiBackend.backendName
       description: apiBackend.backendDescription
