@@ -36,11 +36,6 @@
                 ]         
             }
         },
-        "apim": {
-            "value": {
-                "name": "apim-cdk"
-            }
-        },
         "appServicePlan": {
             "value": {
                 "name": "asp-fctoernooi",
@@ -87,43 +82,6 @@
                 }
             }
         },
-        "apiBackend": {
-            "value": {
-                "name": "fctoernooi-api",
-                "version": "v1",
-                "backendName": "fctoernooi-api-backend",
-                "backendDescription": "FCToernooi REST API App Service",
-                "versionSet": {
-                    "name": "fctoernooi-api-versionset",
-                    "properties": {
-                        "displayName": "FCToernooi API",
-                        "versioningScheme": "Segment"
-                    }
-                },
-                "properties": {
-                    "displayName": "FCToernooi API",
-                    "path": "fctoernooi-api",
-                    "apiVersion": "v1",
-                    "protocols": [
-                        "https"
-                    ],
-                    "subscriptionRequired": false,
-                    "format": "openapi"
-                },
-                "product": {
-                    "name": "fctoernooi-api-product",
-                    "properties": {
-                        "displayName": "FCToernooi API",
-                        "description": "Tournament management REST API",
-                        "subscriptionRequired": false,
-                        "state": "published"
-                    },
-                    "groups": [
-                        "Developers"
-                    ]
-                }
-            }
-        },
         "database": {
             "value": {
                 "host": "db.cdkdev.nl",
@@ -132,14 +90,6 @@
                     "acc": "fctoernooi-acc",
                     "prd": "fctoernooi"
                 }
-            }
-        },
-        "mcpServer": {
-            "value": {
-                "name": "fctoernooi-api-mcp",
-                "displayName": "FCToernooi API MCP Server",
-                "description": "Exposes the FCToernooi tournament API as MCP tools for AI agents.",
-                "path": "fctoernooi-api-mcp"
             }
         }
     }

@@ -182,3 +182,16 @@ jobs:
               --name as-fctoernooi-frontend-${{ inputs.environment }} \
               --slot staging \
               --target-slot production
+
+      - name: Deploy API Gateway (APIM + MCP)
+        # Runs after the backend code deploy so the openapi.yaml it imports into APIM is never stale.
+        uses: azure/cli@v3
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group ${{ inputs.core-resource-group }} \
+              --template-file infra/gateway.bicep \
+              --parameters infra/parameters.gateway.json \
+              --parameters environment=${{ inputs.environment }} \
+              --parameters backendUrl=${{ steps.infra.outputs.backendUrl }}

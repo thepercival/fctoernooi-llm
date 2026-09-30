@@ -9,19 +9,15 @@ param entraAdminPrincipalId string
 
 param logAnalyticsWorkspace object
 param keyVault object
-param apim object
 param appServicePlan object
 param applicationInsights object
 param appServiceBackend object
-param apiBackend object
-param mcpServer object
 
 param appServiceFrontend object
 param openaiAccount object
 param openaiProject object
 param database object
 
-var apimName = '${apim.name}-${environment}'
 var appServicePlanName = '${appServicePlan.name}-${environment}'
 var applicationInsightsName = '${applicationInsights.name}-${environment}'
 var appServiceBackendName = '${appServiceBackend.name}-${environment}'
@@ -167,46 +163,8 @@ module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
 }
 
 
-// ── APIM: backend REST API ────────────────────────────────────────────────────
-
-module modApimApi 'br/modules:apim-api:latest' = {
-  name: 'modApimApi'
-  scope: resourceGroup(coreResourceGroupName)
-  params: {
-    apiManagementName: apimName
-    api: apiBackend
-    // Backend serves its own spec at /openapi.yaml — avoids APIM's flaky fetches from raw.githubusercontent.com.
-    openapiLink: '${modAppServiceBackend.outputs.url}/openapi.yaml'
-    backend: {
-      name: apiBackend.backendName
-      description: apiBackend.backendDescription
-      url: modAppServiceBackend.outputs.url
-    }
-  }
-}
-
-// ── APIM: MCP server (exposes API operations as tools for AI agents) ─────────
-// Tool list lives in mcp-tools.json, generated from openapi.yaml operationIds
-
-
-module modMcpServer 'modules/mcp-server.bicep' = {
-  name: 'modMcpServer'
-  scope: resourceGroup(coreResourceGroupName)
-  params: {
-    apiManagementName: apimName
-    backingApiName: apiBackend.name
-    mcpServer: mcpServer
-    productName: apiBackend.product.name
-    tools: loadJsonContent('mcp-tools.json').tools
-  }
-  dependsOn: [modApimApi]
-}
-
-
 output backendUrl string = modAppServiceBackend.outputs.url
 output frontendUrl string = modAppServiceFrontend.outputs.url
-output apimGatewayUrl string = 'https://${apimName}.azure-api.net'
-output mcpServerUrl string = modMcpServer.outputs.mcpServerUrl
 output openaiAccountName string = openaiAccount.name
 output openaiProjectName string = openaiProject.name
 

@@ -145,3 +145,4 @@ vite.config.ts.timestamp-*
 infra/**/*.json
 !infra/mcp-tools.json
 !infra/agents/*.json
+!infra/parameters.gateway.json
