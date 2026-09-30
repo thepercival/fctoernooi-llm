@@ -6,6 +6,8 @@ param environment string
 param coreResourceGroupName string
 @secure()
 param entraAdminPrincipalId string
+// Suffixes the flaky modAppServiceFrontend deployment name so retried/duplicated writes never collide on 'DeploymentActive'.
+param deployRunId string = utcNow('yyyyMMddHHmmssfff')
 
 param logAnalyticsWorkspace object
 param keyVault object
@@ -146,7 +148,7 @@ var apiBaseUrl = appServiceFrontend.apiBaseUrl[environment]
 
 // ── APIM: chatbot frontend ────────────────────────────────────────────────────
 module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
-  name: 'modAppServiceFrontend'
+  name: 'modAppServiceFrontend-${deployRunId}'
   params: {
     appServiceName: appServiceFrontendName
     location: location
