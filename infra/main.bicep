@@ -6,8 +6,6 @@ param environment string
 param coreResourceGroupName string
 @secure()
 param entraAdminPrincipalId string
-// Suffixes fixed-name nested deployments so overlapping/retried runs never collide on 'DeploymentActive'.
-param deployRunId string = utcNow('yyyyMMddHHmmssfff')
 
 param logAnalyticsWorkspace object
 param keyVault object
@@ -152,7 +150,7 @@ var apiBaseUrl = appServiceFrontend.apiBaseUrl[environment]
 
 // ── APIM: chatbot frontend ────────────────────────────────────────────────────
 module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
-  name: 'modAppServiceFrontend-${deployRunId}'
+  name: 'modAppServiceFrontend'
   params: {
     appServiceName: appServiceFrontendName
     location: location
@@ -172,7 +170,7 @@ module modAppServiceFrontend 'modules/app-service-frontend.bicep' = {
 // ── APIM: backend REST API ────────────────────────────────────────────────────
 
 module modApimApi 'br/modules:apim-api:latest' = {
-  name: 'modApimApi-${deployRunId}'
+  name: 'modApimApi'
   scope: resourceGroup(coreResourceGroupName)
   params: {
     apiManagementName: apimName
