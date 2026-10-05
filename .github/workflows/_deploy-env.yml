@@ -102,7 +102,7 @@ jobs:
           FOUNDRY_PROJECT_ENDPOINT: https://ais-cdk-${{ inputs.environment }}.services.ai.azure.com/api/projects/aisp-fctoernooi-${{ inputs.environment }}
         run: |
           azd extension install microsoft.foundry -f
-          azd auth login --client-id "$AZURE_CLIENT_ID" --federated-credential-provider github-actions --tenant-id "$AZURE_TENANT_ID"
+          azd auth login --client-id "$AZURE_CLIENT_ID" --federated-credential-provider github --tenant-id "$AZURE_TENANT_ID"
           for agent_dir in infra/agents/hosted-agents/*/; do
             [ -f "${agent_dir}azure.yaml" ] || continue
             echo "::group::Deploying hosted agent: ${agent_dir}"
