@@ -109,6 +109,7 @@ jobs:
             pushd "$agent_dir"
             azd env select ${{ inputs.environment }} 2>/dev/null || azd env new ${{ inputs.environment }} --no-prompt
             azd env set AZURE_SUBSCRIPTION_ID "$AZURE_SUBSCRIPTION_ID"
+            azd env set AZURE_LOCATION westeurope
             azd env set FOUNDRY_PROJECT_ENDPOINT "$FOUNDRY_PROJECT_ENDPOINT"
             azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME "gpt-5-mini"
             azd provision --no-prompt
