@@ -70,7 +70,6 @@ resource resAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   scope: resourceGroup(coreResourceGroupName)
 }
 
-
 // resource resCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
 //   name: cosmosDbAccountName
 // }

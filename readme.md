@@ -228,7 +228,28 @@ flowchart LR
 | `pull_request` closed | `merged == true` into `main` | acc |
 | after acc succeeds | — | prd |
 
+#### Hosted agent deployment (`azd`) prerequisites
 
+The `Deploy hosted agents` CI step (`.github/workflows/_deploy-env.yml`) runs `azd provision`/`azd deploy`
+against each `infra/agents/hosted-agents/*/azure.yaml`, using the same OIDC-federated CI service
+principal as the rest of the workflow (`azd auth login --federated-credential-provider github`).
+This has one-time, per-environment manual setup that the pipeline itself cannot create:
+
+- The CI service principal needs the **"Role Based Access Control Administrator"** role
+  (`f58310d9-a9f6-439a-9e8d-f62e7b41a168`) on azd's own resource group for that environment
+  (`rg-<env>`, e.g. `rg-dev` — NOT the same resource group as the main bicep deploy,
+  `rg-fctoernooi-<env>`). Without it, `azd provision` fails provisioning the agent's role
+  assignment (granting the agent's managed identity access to the Foundry project) with
+  `Authorization failed ... Microsoft.Authorization/roleAssignments/write`.
+  Grant it once per environment, e.g.:
+  ```bash
+  az role assignment create \
+    --assignee-object-id <CI_SP_OBJECT_ID> --assignee-principal-type ServicePrincipal \
+    --role f58310d9-a9f6-439a-9e8d-f62e7b41a168 \
+    --scope /subscriptions/<SUB_ID>/resourceGroups/rg-<env>
+  ```
+- `azd env set AZURE_LOCATION westeurope` is set explicitly by the workflow for freshly created
+  `azd` environments (azd doesn't inherit it from anywhere else automatically).
 
 ## User Privacy & Data Isolation
 
