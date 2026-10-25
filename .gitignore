@@ -146,3 +146,11 @@ infra/**/*.json
 !infra/mcp-tools.json
 !infra/agents/*.json
 !infra/parameters.gateway.json
+
+# .NET build output and caches (hosted agent)
+[Bb]in/
+[Oo]bj/
+*.cache
+
+# Hosted agent runtime checkpoints
+.checkpoints/
