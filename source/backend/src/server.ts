@@ -4,6 +4,7 @@ import * as OpenApiValidator from 'express-openapi-validator';
 import { apiReference } from '@scalar/express-api-reference';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import {
   MongoDb,
@@ -13,11 +14,16 @@ import {
   type RegistrationRecord, type RegistrationSettingsRecord, type PaymentRecord,
 } from './db.js';
 import type { components } from './openapi.gen.js';
+import { createMailer, frontendLink, type Mailer } from './mailer.js';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const PORT = Number(process.env.PORT ?? 8080);
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
+const DEV_JWT_SECRET = 'dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || DEV_JWT_SECRET;
+if (JWT_SECRET === DEV_JWT_SECRET) console.warn('JWT_SECRET is not set: using the insecure development secret. Tokens can be forged.');
+const VALIDATE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 const JWT_EXPIRES_IN = '8h';
 const BCRYPT_ROUNDS = 10;
 const SPEC_PATH = path.join(__dirname, 'openapi.yaml');
@@ -56,14 +62,49 @@ async function getTournamentRoleAssignment(db: MongoDb, tournamentId: number, us
 function hasRole(tu: TournamentRoleAssignmentRecord, role: number): boolean { return (tu.roles & role) !== 0; }
 
 function stripSensitive(u: UserRecord): S['User'] & { id: number } {
-  const { passwordHash: _p, validateToken: _v, forgetPasswordToken: _f, ...safe } = u;
+  const {
+    passwordHash: _p, validateToken: _v, validateTokenExpires: _ve,
+    forgetPasswordToken: _f, forgetPasswordTokenExpires: _fe, ...safe
+  } = u;
   return safe;
+}
+
+// Email address is the login identifier: always compared trimmed + lowercase.
+function normalizeEmail(emailaddress: string): string { return emailaddress.trim().toLowerCase(); }
+
+// One-time tokens: the plain token only goes out by email; the database keeps a hash and an expiry.
+function hashToken(token: string): string { return createHash('sha256').update(token).digest('hex'); }
+function newToken(ttlMs: number): { token: string; hash: string; expires: string } {
+  const token = randomBytes(32).toString('hex');
+  return { token, hash: hashToken(token), expires: new Date(Date.now() + ttlMs).toISOString() };
+}
+function tokenMatches(storedHash: string | null, expires: string | null, supplied: string): boolean {
+  if (!storedHash || !expires || Date.parse(expires) < Date.now()) return false;
+  const a = Buffer.from(storedHash);
+  const b = Buffer.from(hashToken(supplied));
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function isDuplicateKey(err: unknown): boolean { return (err as { code?: number })?.code === 11000; }
+
+// Older documents predate name/startDateTime/intro.
+function toTournament(t: TournamentRecord): TournamentRecord {
+  return { ...t, name: t.name ?? t.intro ?? '', startDateTime: t.startDateTime ?? t.createdDateTime, intro: t.intro ?? '' };
+}
+
+function tournamentFields(body: S['TournamentRequest']): Partial<Omit<TournamentRecord, 'id'>> {
+  const fields: Partial<Omit<TournamentRecord, 'id'>> = { name: body.name, startDateTime: body.startDateTime };
+  if (body.public !== undefined) fields.public = body.public;
+  if (body.intro !== undefined) fields.intro = body.intro;
+  if (body.location !== undefined) fields.location = body.location;
+  if (body.theme !== undefined) fields.theme = body.theme;
+  return fields;
 }
 
 type ShellFilters = { startDate?: unknown; endDate?: unknown; name?: unknown; example?: unknown };
 
 function matchesShellFilters(tournament: TournamentRecord, filters: ShellFilters): boolean {
-  const tournamentDate = Date.parse(tournament.createdDateTime);
+  const tournamentDate = Date.parse(tournament.startDateTime);
   const startDate = filters.startDate ? Date.parse(String(filters.startDate)) : null;
   const endDate = filters.endDate ? Date.parse(String(filters.endDate)) : null;
   const name = filters.name ? String(filters.name) : null;
@@ -71,7 +112,7 @@ function matchesShellFilters(tournament: TournamentRecord, filters: ShellFilters
 
   return (startDate === null || tournamentDate >= startDate)
     && (endDate === null || tournamentDate <= endDate)
-    && (name === null || tournament.intro.includes(name))
+    && (name === null || tournament.name.includes(name))
     && (example === null || tournament.example === example);
 }
 
@@ -79,8 +120,8 @@ function toTournamentShell(tournament: TournamentRecord, roles = 0): S['Tourname
   return {
     tournamentId: tournament.id,
     singleCustomSport: 0,
-    name: tournament.intro,
-    startDateTime: tournament.createdDateTime,
+    name: tournament.name,
+    startDateTime: tournament.startDateTime,
     roles,
     public: tournament.public,
   };
@@ -93,7 +134,7 @@ async function getRolesByTournament(db: MongoDb, userId: number): Promise<Map<nu
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
-function buildApp(db: MongoDb): express.Express {
+function buildApp(db: MongoDb, mailer: Mailer): express.Express {
   const app = express();
   app.use(express.json());
 
@@ -129,20 +170,30 @@ function buildApp(db: MongoDb): express.Express {
   // ── /auth (public) ────────────────────────────────────────────────────────
 
   app.post('/auth/register', async (req, res) => {
-    const { emailaddress, password, subType } = req.body as S['RegisterRequest'];
+    const { password, subType } = req.body as S['RegisterRequest'];
+    const emailaddress = normalizeEmail((req.body as S['RegisterRequest']).emailaddress);
     if ((await db.find<UserRecord>('users', { emailaddress })).length > 0) {
       res.status(409).json({ message: 'Email address already in use.' }); return;
     }
-    await db.create<UserRecord>('users', {
-      emailaddress, passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
-      name: null, validated: false, nrOfCredits: 0, subType: subType ?? 'human',
-      validateToken: Math.random().toString(36).slice(2), forgetPasswordToken: null,
-    });
+    const validation = newToken(VALIDATE_TOKEN_TTL_MS);
+    try {
+      await db.create<UserRecord>('users', {
+        emailaddress, passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
+        name: null, validated: false, nrOfCredits: 0, subType: subType ?? 'human',
+        validateToken: validation.hash, validateTokenExpires: validation.expires,
+        forgetPasswordToken: null, forgetPasswordTokenExpires: null,
+      });
+    } catch (err) {
+      if (isDuplicateKey(err)) { res.status(409).json({ message: 'Email address already in use.' }); return; }
+      throw err;
+    }
+    await mailer.sendValidation(emailaddress, frontendLink('/user/validate', { code: validation.token }));
     res.status(201).end();
   });
 
   app.post('/auth/login', async (req, res) => {
-    const { emailaddress, password } = req.body as S['LoginRequest'];
+    const { password } = req.body as S['LoginRequest'];
+    const emailaddress = normalizeEmail((req.body as S['LoginRequest']).emailaddress);
     const user = (await db.find<UserRecord>('users', { emailaddress })).at(0);
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       res.status(401).json({ message: 'Invalid credentials.' }); return;
@@ -150,18 +201,28 @@ function buildApp(db: MongoDb): express.Express {
     res.json({ token: signToken(user.id, user.subType), userId: user.id } satisfies S['TokenResponse']);
   });
 
+  // Always 200, whether or not the address is known, so accounts cannot be enumerated.
   app.post('/auth/passwordreset', async (req, res) => {
-    const { emailaddress } = req.body as { emailaddress: string };
+    const emailaddress = normalizeEmail((req.body as { emailaddress: string }).emailaddress);
     const user = (await db.find<UserRecord>('users', { emailaddress })).at(0);
-    if (user) await db.update<UserRecord>('users', user.id, { forgetPasswordToken: Math.random().toString(36).slice(2) });
+    if (user) {
+      const reset = newToken(RESET_TOKEN_TTL_MS);
+      await db.update<UserRecord>('users', user.id, { forgetPasswordToken: reset.hash, forgetPasswordTokenExpires: reset.expires });
+      await mailer.sendPasswordReset(user.emailaddress, frontendLink('/user/passwordchange', { emailaddress: user.emailaddress, token: reset.token }));
+    }
     res.status(200).end();
   });
 
   app.post('/auth/passwordchange', async (req, res) => {
-    const { emailaddress, password, token } = req.body as S['ChangePasswordRequest'];
+    const { password, token } = req.body as S['ChangePasswordRequest'];
+    const emailaddress = normalizeEmail((req.body as S['ChangePasswordRequest']).emailaddress);
     const user = (await db.find<UserRecord>('users', { emailaddress })).at(0);
-    if (!user || user.forgetPasswordToken !== token) { res.status(400).json({ message: 'Invalid or expired reset token.' }); return; }
-    await db.update<UserRecord>('users', user.id, { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS), forgetPasswordToken: null });
+    if (!user || !tokenMatches(user.forgetPasswordToken, user.forgetPasswordTokenExpires, token)) {
+      res.status(400).json({ message: 'Invalid or expired reset token.' }); return;
+    }
+    await db.update<UserRecord>('users', user.id, {
+      passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS), forgetPasswordToken: null, forgetPasswordTokenExpires: null,
+    });
     res.status(200).end();
   });
 
@@ -175,7 +236,7 @@ function buildApp(db: MongoDb): express.Express {
     const ownPrivateTournaments = rolesByTournament.size > 0
       ? (await db.find<TournamentRecord>('tournaments', { public: false })).filter((t) => rolesByTournament.has(t.id))
       : [];
-    res.json([...publicTournaments, ...ownPrivateTournaments]
+    res.json([...publicTournaments, ...ownPrivateTournaments].map(toTournament)
       .filter((tournament) => matchesShellFilters(tournament, req.query))
       .slice(0, 100)
       .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
@@ -187,7 +248,7 @@ function buildApp(db: MongoDb): express.Express {
       db.find<TournamentRecord>('tournaments', { example: false }),
       getRolesByTournament(db, req.userId!),
     ]);
-    res.json(tournaments
+    res.json(tournaments.map(toTournament)
       .filter((tournament) => ((rolesByTournament.get(tournament.id) ?? 0) & requestedRoles) !== 0)
       .map((tournament) => toTournamentShell(tournament, rolesByTournament.get(tournament.id) ?? 0)));
   });
@@ -201,22 +262,23 @@ function buildApp(db: MongoDb): express.Express {
     const body = req.body as S['TournamentRequest'];
     const tournament = await db.create<TournamentRecord>('tournaments', {
       createdDateTime: new Date().toISOString(), startEditMode: 'EditMode',
-      example: false, location: null, logoExtension: null, theme: null,
-      ...body,
+      example: false, intro: '', location: null, logoExtension: null, theme: null,
+      ...tournamentFields(body),
+      name: body.name, startDateTime: body.startDateTime,
       public: body.public ?? true,
     });
     await db.create<TournamentRoleAssignmentRecord>('tournamentRoleAssignments', {
       tournamentId: tournament.id, userId: req.userId!,
       roles: Role.Admin | Role.RoleAdmin | Role.GameResultAdmin,
     });
-    res.status(201).json(tournament);
+    res.status(201).json(toTournament(tournament));
   });
 
   app.get('/tournaments/:tournamentId', async (req, res) => {
     const t = await db.findOne<TournamentRecord>('tournaments', Number(req.params.tournamentId));
     if (!t) { notFound(res); return; }
     if (!t.public && !(await canViewNonPublicTournament(t.id, req.userId))) { forbidden(res); return; }
-    res.json(t);
+    res.json(toTournament(t));
   });
 
   // ── /auth ─────────────────────────────────────────────────────────────────
@@ -225,23 +287,58 @@ function buildApp(db: MongoDb): express.Express {
 
   app.post('/auth/validate/:code', async (req, res) => {
     const user = await db.findOne<UserRecord>('users', req.userId!);
-    if (!user || user.validateToken !== req.params.code) { res.status(400).json({ message: 'Invalid validation code.' }); return; }
-    await db.update<UserRecord>('users', user.id, { validated: true, validateToken: null });
+    if (!user || !tokenMatches(user.validateToken, user.validateTokenExpires, String(req.params.code))) {
+      res.status(400).json({ message: 'Invalid or expired validation code.' }); return;
+    }
+    await db.update<UserRecord>('users', user.id, { validated: true, validateToken: null, validateTokenExpires: null });
     res.status(200).end();
   });
 
+  async function sendValidationMail(user: UserRecord): Promise<void> {
+    const validation = newToken(VALIDATE_TOKEN_TTL_MS);
+    await db.update<UserRecord>('users', user.id, { validateToken: validation.hash, validateTokenExpires: validation.expires });
+    await mailer.sendValidation(user.emailaddress, frontendLink('/user/validate', { code: validation.token }));
+  }
+
   app.post('/auth/validationrequest', async (req, res) => {
     const user = await db.findOne<UserRecord>('users', req.userId!);
-    if (user && !user.validated) await db.update<UserRecord>('users', user.id, { validateToken: Math.random().toString(36).slice(2) });
+    if (user && !user.validated) await sendValidationMail(user);
     res.status(200).end();
   });
+
+  // Only whitelisted fields are applied: the body is never spread into the document
+  // (validated/nrOfCredits/passwordHash/... must not be client-writable).
+  async function applyUserUpdate(user: UserRecord, body: S['UserUpdateRequest'], res: Response): Promise<void> {
+    const patch: Partial<Omit<UserRecord, 'id'>> = {};
+    if (body.name !== undefined) patch.name = body.name;
+    let emailChanged = false;
+    if (body.emailaddress !== undefined) {
+      const emailaddress = normalizeEmail(body.emailaddress);
+      if (emailaddress !== user.emailaddress) {
+        if ((await db.find<UserRecord>('users', { emailaddress })).length > 0) {
+          res.status(409).json({ message: 'Email address already in use.' }); return;
+        }
+        patch.emailaddress = emailaddress;
+        patch.validated = false;
+        emailChanged = true;
+      }
+    }
+    let updated: UserRecord | null;
+    try {
+      updated = await db.update<UserRecord>('users', user.id, patch);
+    } catch (err) {
+      if (isDuplicateKey(err)) { res.status(409).json({ message: 'Email address already in use.' }); return; }
+      throw err;
+    }
+    if (emailChanged && updated) await sendValidationMail(updated);
+    res.json(stripSensitive((await db.findOne<UserRecord>('users', user.id))!));
+  }
 
   app.put('/auth/profile/:userId', async (req, res) => {
     if (Number(req.params.userId) !== req.userId!) { forbidden(res); return; }
     const user = await db.findOne<UserRecord>('users', req.userId!);
     if (!user) { notFound(res); return; }
-    const updated = await db.update<UserRecord>('users', user.id, req.body as S['UserUpdateRequest']);
-    res.json(stripSensitive(updated!));
+    await applyUserUpdate(user, { name: (req.body as S['UserUpdateRequest']).name }, res);
   });
 
   // ── /users ────────────────────────────────────────────────────────────────
@@ -257,7 +354,7 @@ function buildApp(db: MongoDb): express.Express {
     if (Number(req.params.userId) !== req.userId!) { forbidden(res); return; }
     const user = await db.findOne<UserRecord>('users', Number(req.params.userId));
     if (!user) { notFound(res); return; }
-    res.json(stripSensitive((await db.update<UserRecord>('users', user.id, req.body as S['UserUpdateRequest']))!));
+    await applyUserUpdate(user, req.body as S['UserUpdateRequest'], res);
   });
 
   app.delete('/users/:userId', async (req, res) => {
@@ -298,16 +395,16 @@ function buildApp(db: MongoDb): express.Express {
     const tournamentId = Number(req.params.tournamentId);
     const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
-    const updated = await db.update<TournamentRecord>('tournaments', tournamentId, req.body as S['TournamentRequest']);
+    const updated = await db.update<TournamentRecord>('tournaments', tournamentId, tournamentFields(req.body as S['TournamentRequest']));
     if (!updated) { notFound(res); return; }
-    res.json(updated);
+    res.json(toTournament(updated));
   });
 
   app.delete('/tournaments/:tournamentId', async (req, res) => {
     const tournamentId = Number(req.params.tournamentId);
     const tu = await getTournamentRoleAssignment(db, tournamentId, req.userId!);
     if (!tu || !hasRole(tu, Role.Admin)) { forbidden(res); return; }
-    await db.delete('tournaments', tournamentId);
+    await db.deleteTournamentCascade(tournamentId);
     res.status(204).end();
   });
 
@@ -692,7 +789,7 @@ function buildApp(db: MongoDb): express.Express {
 
 async function main(): Promise<void> {
   const db = await MongoDb.connect();
-  const app = buildApp(db);
+  const app = buildApp(db, createMailer());
   app.listen(PORT, () => {
     console.log(`FCToernooi API  →  http://localhost:${PORT}`);
     console.log(`Spec            →  ${SPEC_PATH}`);

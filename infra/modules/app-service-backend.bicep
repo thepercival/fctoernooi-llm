@@ -9,6 +9,8 @@ param withStagingSlot bool
 param dbHost string
 param dbPort string = '27017'
 param dbName string
+@description('Public base URL of the frontend; used for the links in account emails (validation, password reset).')
+param frontendBaseUrl string
 @secure()
 param dbPassword string
 
@@ -28,6 +30,10 @@ module modAppService 'br/modules:app-service:latest' = {
       {
         name: 'MONGODB_DB'
         value: dbName
+      }
+      {
+        name: 'FRONTEND_BASEURL'
+        value: frontendBaseUrl
       }
     ]
     additionalProductionOnlyEnvironmentVariables: []

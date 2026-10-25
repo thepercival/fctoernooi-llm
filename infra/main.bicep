@@ -90,6 +90,7 @@ module modAppServiceBackend 'modules/app-service-backend.bicep' = {
     dbHost: database.host
     dbName: dbName
     dbPassword: resKeyVault.getSecret(dbPasswordSecretName)
+    frontendBaseUrl: 'https://${appServiceFrontendName}.azurewebsites.net'
   }
 }
 

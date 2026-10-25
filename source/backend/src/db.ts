@@ -11,12 +11,16 @@ type S = components['schemas'];
 // ── Record types (DB storage — all fields required; extend API schemas) ────────
 
 // UserRecord adds auth fields not exposed by the API
+// Tokens are stored as SHA-256 hashes (never the plain token) together with an expiry.
 export type UserRecord = Required<S['User']> & {
   passwordHash: string;
   validateToken: string | null;
+  validateTokenExpires: string | null;
   forgetPasswordToken: string | null;
+  forgetPasswordTokenExpires: string | null;
 };
 
+// Legacy documents may lack name/startDateTime/intro; see toTournament() in server.ts.
 export type TournamentRecord = Required<S['Tournament']>;
 
 export type CompetitorRecord = Required<S['Competitor']> & { tournamentId: number };
@@ -71,6 +75,7 @@ export class MongoDb {
     const instance = new MongoDb(client.db(dbName));
     // TODO: run migrate-mongo migrations here before ensureIndexes (add migrate-mongo package, call up())
     await instance.ensureIndexes();
+    await instance.normalizeUserEmails();
     return instance;
   }
 
@@ -97,6 +102,21 @@ export class MongoDb {
     await this.mdb.collection('invitations').createIndex({ tournamentId: 1, emailaddress: 1 }, { unique: true });
     await this.mdb.collection('registrations').createIndex({ tournamentId: 1, categoryNr: 1 });
     await this.mdb.collection('payments').createIndex({ userId: 1 });
+  }
+
+  // Email addresses are the login identifier: stored trimmed + lowercase. Older documents may be
+  // mixed-case; lowercase them unless that would collide with another account (those are logged).
+  private async normalizeUserEmails(): Promise<void> {
+    const users = this.mdb.collection<{ _id: number; emailaddress: string }>('users');
+    for (const user of await users.find({}, { projection: { emailaddress: 1 } }).toArray()) {
+      const normalized = user.emailaddress.trim().toLowerCase();
+      if (normalized === user.emailaddress) continue;
+      try {
+        await users.updateOne({ _id: user._id }, { $set: { emailaddress: normalized } });
+      } catch {
+        console.warn(`User ${user._id}: emailaddress not normalized, collides with another account.`);
+      }
+    }
   }
 
   // ── Generic CRUD ──────────────────────────────────────────────────────────
@@ -136,6 +156,23 @@ export class MongoDb {
   async delete(collection: CollectionName, id: number): Promise<boolean> {
     const result = await this.col(collection).deleteOne({ _id: id });
     return result.deletedCount > 0;
+  }
+
+  // Removes a tournament and everything scoped to it (there is no cross-collection ownership otherwise).
+  async deleteTournamentCascade(tournamentId: number): Promise<boolean> {
+    const lockerRooms = await this.find<{ id: number; tournamentId: number }>('lockerRooms', { tournamentId });
+    if (lockerRooms.length > 0) {
+      await this.mdb.collection<IntDoc>('lockerRoomCompetitors').deleteMany({ _id: { $in: lockerRooms.map((l) => l.id) } });
+    }
+    const scoped: CollectionName[] = [
+      'competitors', 'sponsors', 'lockerRooms', 'recesses', 'rules',
+      'tournamentRoleAssignments', 'invitations', 'registrations',
+    ];
+    for (const collection of scoped) {
+      await this.col(collection).deleteMany({ tournamentId });
+    }
+    await this.mdb.collection<IntDoc>('registrationSettings').deleteOne({ _id: tournamentId });
+    return this.delete('tournaments', tournamentId);
   }
 
   // ── Registration settings (tournamentId is PK, no auto-id) ───────────────

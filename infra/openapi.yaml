@@ -32,6 +32,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           description: Email address already in use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/login:
     post:
@@ -179,6 +183,9 @@ paths:
     put:
       tags: [Users]
       summary: Update user
+      description: >
+        Updates name and/or emailaddress. Changing the emailaddress marks the
+        account as not validated and sends a new validation email.
       operationId: updateUser
       parameters:
         - $ref: '#/components/parameters/userId'
@@ -197,6 +204,12 @@ paths:
                 $ref: '#/components/schemas/User'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Email address already in use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags: [Users]
       summary: Delete user account
@@ -345,7 +358,11 @@ paths:
     post:
       tags: [Tournaments]
       summary: Create tournament
-      description: Creates the tournament and its initial Admin role assignment for the caller in one operation.
+      description: >
+        Creates the tournament and its initial Admin role assignment for the caller
+        in one operation. There is no owner field: the caller's role assignment is
+        the only link between the user and the tournament ("my tournaments" is
+        derived from role assignments, see /shellswithrole).
       operationId: createTournament
       requestBody:
         required: true
@@ -409,6 +426,7 @@ paths:
     delete:
       tags: [Tournaments]
       summary: Delete tournament
+      description: Deletes the tournament and everything that belongs to it (competitors, sponsors, locker rooms, recesses, rules, invitations, registrations, role assignments).
       operationId: deleteTournament
       x-roles: [Admin]
       parameters:
@@ -1236,16 +1254,42 @@ components:
   responses:
     BadRequest:
       description: Invalid request payload.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
       description: Missing or invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
       description: Insufficient permissions.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     UnprocessableEntity:
       description: The supplied request parameters could not be processed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
 
     # ── Auth ───────────────────────────────────────────────────────────────────
 
@@ -1342,6 +1386,12 @@ components:
       properties:
         id:
           type: integer
+        name:
+          type: string
+          maxLength: 100
+        startDateTime:
+          type: string
+          format: date-time
         createdDateTime:
           type: string
           format: date-time
@@ -1361,6 +1411,7 @@ components:
         intro:
           type: string
           maxLength: 400
+          description: Optional free-text introduction.
         location:
           type: string
           maxLength: 80
@@ -1376,8 +1427,18 @@ components:
 
     TournamentRequest:
       type: object
-      required: [intro]
+      required: [name, startDateTime]
       properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        startDateTime:
+          type: string
+          format: date-time
+        public:
+          type: boolean
+          default: true
         intro:
           type: string
           maxLength: 400
@@ -1385,9 +1446,6 @@ components:
           type: string
           maxLength: 80
           nullable: true
-        public:
-          type: boolean
-          default: true
         theme:
           type: object
           nullable: true

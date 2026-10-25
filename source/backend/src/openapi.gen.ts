@@ -149,7 +149,10 @@ export interface paths {
         };
         /** Get user */
         get: operations["getUser"];
-        /** Update user */
+        /**
+         * Update user
+         * @description Updates name and/or emailaddress. Changing the emailaddress marks the account as not validated and sends a new validation email.
+         */
         put: operations["updateUser"];
         post?: never;
         /** Delete user account */
@@ -278,7 +281,7 @@ export interface paths {
         put?: never;
         /**
          * Create tournament
-         * @description Creates the tournament and its initial Admin role assignment for the caller in one operation.
+         * @description Creates the tournament and its initial Admin role assignment for the caller in one operation. There is no owner field: the caller's role assignment is the only link between the user and the tournament ("my tournaments" is derived from role assignments, see /shellswithrole).
          */
         post: operations["createTournament"];
         delete?: never;
@@ -299,7 +302,10 @@ export interface paths {
         /** Update tournament */
         put: operations["updateTournament"];
         post?: never;
-        /** Delete tournament */
+        /**
+         * Delete tournament
+         * @description Deletes the tournament and everything that belongs to it (competitors, sponsors, locker rooms, recesses, rules, invitations, registrations, role assignments).
+         */
         delete: operations["deleteTournament"];
         options?: never;
         head?: never;
@@ -699,6 +705,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ErrorResponse: {
+            message?: string;
+        };
         RegisterRequest: {
             /** Format: email */
             emailaddress: string;
@@ -742,6 +751,9 @@ export interface components {
         };
         Tournament: {
             id?: number;
+            name?: string;
+            /** Format: date-time */
+            startDateTime?: string;
             /** Format: date-time */
             createdDateTime?: string;
             /** @enum {string} */
@@ -749,6 +761,7 @@ export interface components {
             /** @description When true (default), the tournament, its rules, registration settings, and shells listing are readable by anyone and anyone can submit a registration. When false, only a caller with an Admin role assignment can view or use it. Management actions always require their specific role regardless of this flag. */
             public?: boolean;
             example?: boolean;
+            /** @description Optional free-text introduction. */
             intro?: string;
             location?: string | null;
             logoExtension?: string | null;
@@ -757,10 +770,13 @@ export interface components {
             } | null;
         };
         TournamentRequest: {
-            intro: string;
-            location?: string | null;
+            name: string;
+            /** Format: date-time */
+            startDateTime: string;
             /** @default true */
             public: boolean;
+            intro?: string;
+            location?: string | null;
             theme?: {
                 [key: string]: unknown;
             } | null;
@@ -939,35 +955,45 @@ export interface components {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
         };
         /** @description Missing or invalid authentication. */
         Unauthorized: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
         };
         /** @description Insufficient permissions. */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
         };
         /** @description Resource not found. */
         NotFound: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
         };
         /** @description The supplied request parameters could not be processed. */
         UnprocessableEntity: {
             headers: {
                 [name: string]: unknown;
             };
-            content?: never;
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
         };
     };
     parameters: {
@@ -1028,7 +1054,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };
@@ -1242,6 +1270,15 @@ export interface operations {
                 };
             };
             403: components["responses"]["Forbidden"];
+            /** @description Email address already in use. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     deleteUser: {

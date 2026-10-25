@@ -72,6 +72,48 @@ flowchart TD
 
 `openapi.yaml` has no `/public/*` path prefix — the split shown in the old PHP API (`fctoernooi-api-old`) was purely a URL convention and is not needed anymore now that visibility is driven entirely by the `public`/role rules above. `x-roles` per operation in `openapi.yaml` documents the required role for management endpoints; `source/backend/src/server.ts` enforces it with explicit inline `getTournamentRoleAssignment`/`hasRole` checks per handler (matching the rest of the codebase's style, not a generic spec-reading middleware). The general public/private visibility rule (endpoints with no `x-roles`) is applied via a shared `canViewNonPublicTournament(tournamentId, userId)` helper, called explicitly from each affected handler (tournament GET, rules GET, registration-settings GET, registration submit).
 
+## Functional Decisions
+
+Decisions about accounts and tournaments. Source of truth for behaviour: `infra/openapi.yaml`; implementation: `source/backend` (API) and `source/frontend` (web UI).
+
+### Accounts
+
+| Topic | Decision |
+|---|---|
+| Registration | Via emailaddress + password (min. 8 characters). Users are stored in MongoDB (`users`), passwords as bcrypt hash. |
+| Identifier | The emailaddress is the login. It is always stored and compared trimmed + lowercase (`Jan@X.nl` and `jan@x.nl` are the same account). The numeric `id` is the stable internal key (in the JWT and in `TournamentRoleAssignment`), because the emailaddress can change. |
+| Validation | After registering (and after every emailaddress change) a validation email with a one-time link is sent. Login does not require a validated address. Changing the emailaddress resets `validated` to `false`. |
+| Password reset | `POST /auth/passwordreset` always answers `200`, whether or not the address exists (no account enumeration). The email contains a one-time link; the link is valid for 1 hour and can be used once. |
+| One-time tokens | Validation (24 h) and reset (1 h) tokens are random (`crypto.randomBytes`), only a SHA-256 hash and the expiry are stored in MongoDB. |
+| Email delivery | Behind a `Mailer` interface (`source/backend/src/mailer.ts`). Currently only a log transport: the link is written to the application log and **no email is sent**. To do: Azure Communication Services Email. |
+| Session | The web UI keeps the API's JWT (8 h) in an `httpOnly`, `SameSite=Lax` cookie (`Secure` over https); pages never see it. All state changes are POSTs with a CSRF token. |
+| Logout | Client-side only: the cookie is removed. The JWT itself stays technically valid until it expires (no server-side revocation). |
+| Profile | The user can change `name` and `emailaddress` (own account only). Only these fields are writable; flags such as `validated` or `nrOfCredits` never are. |
+
+### Authentication & authorization
+
+1. You have to be authenticated (JWT) for everything except: registering, logging in, password reset/change, and reading public tournaments.
+2. Authorization is done **only** via tournament roles (see "Authorization Model"). There are no global roles and no tournament owner.
+3. Updating and deleting a tournament requires the `Admin` role on that tournament, regardless of `public`.
+
+### Tournaments
+
+| Topic | Decision |
+|---|---|
+| Key properties | Three properties are required/central: `name` (max 100), `startDateTime`, `public` (default `true`). `location`, `intro` (description) and `theme` are optional. Older documents without `name`/`startDateTime` fall back to `intro` / `createdDateTime`. |
+| Storage | MongoDB (`tournaments`). Fields of the request are whitelisted (`example`, `createdDateTime`, ... cannot be set by the client). |
+| Creating | `POST /tournaments` creates the tournament and the creator's role assignment (`Admin`, `RoleAdmin`, `GameResultAdmin`) together. |
+| "My tournaments" | There is no owner field. "Mijn toernooien" is derived from role assignments: `GET /shellswithrole?roles=<bitmask>` (the web UI asks for all roles). The roles of the user are shown per tournament. |
+| Deleting | `DELETE /tournaments/{id}` removes the tournament **and everything scoped to it**: competitors, sponsors, locker rooms (+ their competitor links), recesses, rules, invitations, registrations, registration settings and all role assignments. |
+| Time zone | The web UI enters/shows start times in `Europe/Amsterdam`; the API stores and returns UTC instants. |
+
+### Not decided / postponed
+
+- **MCP tools** (`user-register`, `user-login`, `user-logout`, `user-profile`, `password-reset`, workflow-oriented rather than 1:1 API operations) are deliberately postponed. `infra/mcp-tools.json` is unchanged for now.
+- Server-side logout (token revocation), real email delivery and a managed `JWT_SECRET` (see below) are follow-ups.
+
+> **Known gap:** the infra does not yet provision `JWT_SECRET` for the backend App Service. Without it the backend signs tokens with an insecure built-in development secret (a warning is logged at start-up). Add it to Key Vault + the backend app settings before relying on this outside dev.
+
 ## Component List
 |name|function|
 |-|-|
