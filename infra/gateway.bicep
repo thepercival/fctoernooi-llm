@@ -6,8 +6,13 @@ param apim object
 param apiBackend object
 param mcpServer object
 param backendUrl string
+@description('Frontend App Service name prefix and extra (local development) origins per environment, allowed by the CORS policy.')
+param frontend object
 
 var apimName = '${apim.name}-${environment}'
+
+// The browser calls this API directly, so APIM must allow the frontend origin (no credentials: the JWT is sent as a header).
+var corsOrigins = concat(['https://${frontend.name}-${environment}.azurewebsites.net'], frontend.localOrigins[environment])
 
 // ── APIM: backend REST API ────────────────────────────────────────────────────
 
@@ -18,6 +23,7 @@ module modApimApi 'br/modules:apim-api:latest' = {
     api: apiBackend
     // Backend serves its own spec at /openapi.yaml, already redeployed by the time this runs.
     openapiLink: '${backendUrl}/openapi.yaml'
+    corsOrigins: corsOrigins
     backend: {
       name: apiBackend.backendName
       description: apiBackend.backendDescription

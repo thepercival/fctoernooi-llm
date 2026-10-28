@@ -44,6 +44,16 @@
                 }
             }
         },
+        "frontend": {
+            "value": {
+                "name": "as-fctoernooi-frontend",
+                "localOrigins": {
+                    "dev": ["http://localhost:4200"],
+                    "acc": [],
+                    "prd": []
+                }
+            }
+        },
         "mcpServer": {
             "value": {
                 "name": "fctoernooi-api-mcp",

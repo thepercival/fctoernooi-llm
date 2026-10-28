@@ -1,0 +1,35 @@
+@if (tournamentLiveboardLink.showIcon !== false) {
+  <nav class="navbar p-0 mb-0 d-flex flex-nowrap">
+
+    <div class="d-flex flex-nowrap flex-shrink-0">
+      <button (click)="execLeftButton()" class="btn btn-navbar py-0" role="button" [attr.aria-label]="navBarData().atHome ? 'toggle dark mode' : 'home'" tabindex="-1">
+        <app-svg-icon [icon]="navBarData().atHome ? 'darklight' : 'house'"></app-svg-icon>
+      </button>
+      <div class="vr my-0"></div>
+    </div>
+
+    <h1 class="px-2 my-0 overflow-hidden text-nowrap text-truncate flex-grow-1 text-center" style="min-width: 0;">
+      <span class="d-inline-flex align-items-center" style="max-width: 100%;">
+        @if (navBarData().atHome) {
+          <app-svg-icon class="me-1" [width]=20 icon="favicon"></app-svg-icon>
+        }
+        <span class="text-truncate d-inline-block" style="max-width: 100%;">{{navBarData().title}}</span>
+      </span>
+    </h1>
+
+    <div class="d-flex flex-nowrap flex-shrink-0">
+      <div class="vr my-0"></div>
+      @if (authService.loggedIn()) {
+        <button (click)="linkToUserProfile()" class="btn btn-navbar py-0" role="button" tabindex="-1" aria-label="account">
+          <app-svg-icon icon="user-circle"></app-svg-icon>
+        </button>
+      } @else {
+        <button (click)="linkToLogin()" routerLinkActive="active" class="btn btn-navbar py-0" role="button" aria-label="inloggen "
+          tabindex="-1">
+          <app-svg-icon icon="sign-in-alt"></app-svg-icon>
+          <span class="d-none d-sm-inline ms-1">inloggen</span>
+        </button>
+      }
+    </div>
+  </nav>
+}

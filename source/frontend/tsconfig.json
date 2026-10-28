@@ -1,15 +1,40 @@
 {
+  "compileOnSave": false,
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "rootDir": "src",
-    "outDir": "dist",
-    "strict": true,
-    "types": ["node"],
+    "importHelpers": true,
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
     "esModuleInterop": true,
+    "declaration": false,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "esnext",
+    "lib": [
+      "esnext",
+      "dom"
+    ],
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
   },
-  "include": ["src/**/*.ts"]
+  "angularCompilerOptions": {
+    "fullTemplateTypeCheck": true,
+    "strictInjectionParameters": true,
+    "strictTemplates": true,
+    "extendedDiagnostics": {
+      // The categories to use for specific diagnostics.
+      "checks": {
+        // Maps check name to its category.
+        // "nullishCoalescingNotNullable": "suppress"
+      },
+      // The category to use for any diagnostics not listed in `checks` above.
+      "defaultCategory": "error"
+    },
+  }
 }

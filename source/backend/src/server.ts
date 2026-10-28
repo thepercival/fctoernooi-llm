@@ -138,6 +138,22 @@ function buildApp(db: MongoDb, mailer: Mailer): express.Express {
   const app = express();
   app.use(express.json());
 
+  // Local development only: in Azure, APIM applies the CORS policy and the backend is not reachable directly.
+  const corsOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+  if (corsOrigins.length > 0) {
+    app.use((req, res, next) => {
+      const origin = req.headers.origin;
+      if (origin && corsOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      }
+      if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+      next();
+    });
+  }
+
   app.get('/', (_req, res) => res.json({ service: 'fctoernooi-api', status: 'ok', spec: '/openapi.yaml' }));
   app.get('/openapi.yaml', (_req, res) => res.sendFile(SPEC_PATH));
   if (process.env.NODE_ENV !== 'production') {
@@ -187,7 +203,7 @@ function buildApp(db: MongoDb, mailer: Mailer): express.Express {
       if (isDuplicateKey(err)) { res.status(409).json({ message: 'Email address already in use.' }); return; }
       throw err;
     }
-    await mailer.sendValidation(emailaddress, frontendLink('/user/validate', { code: validation.token }));
+    await mailer.sendValidation(emailaddress, frontendLink('/user/validate/' + validation.token));
     res.status(201).end();
   });
 
@@ -297,7 +313,7 @@ function buildApp(db: MongoDb, mailer: Mailer): express.Express {
   async function sendValidationMail(user: UserRecord): Promise<void> {
     const validation = newToken(VALIDATE_TOKEN_TTL_MS);
     await db.update<UserRecord>('users', user.id, { validateToken: validation.hash, validateTokenExpires: validation.expires });
-    await mailer.sendValidation(user.emailaddress, frontendLink('/user/validate', { code: validation.token }));
+    await mailer.sendValidation(user.emailaddress, frontendLink('/user/validate/' + validation.token));
   }
 
   app.post('/auth/validationrequest', async (req, res) => {

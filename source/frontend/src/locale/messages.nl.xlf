@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en-US" datatype="plaintext" original="ng2.template">
+    <body>
+      <!-- ngb : start-->
+      <trans-unit id="ngb.alert.close" datatype="html">
+        <target>Sluiten</target>
+      </trans-unit>
+        <trans-unit id="ngb.datepicker.next-month" datatype="html">
+        <target>Volgende maand</target>
+      </trans-unit>
+      <trans-unit id="ngb.datepicker.select-month" datatype="html">
+        <target>Selecteer maand</target>
+      </trans-unit>
+      <trans-unit id="ngb.datepicker.select-year" datatype="html">
+        <target>Selecteer jaar</target>
+      </trans-unit>
+      <trans-unit id="ngb.datepicker.previous-month" datatype="html">
+        <source>Vorige maand</source>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.first" datatype="html">
+        <target>««</target>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.first-aria" datatype="html">
+        <target>Eerste</target>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.previous" datatype="html">
+        <target>«</target>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.previous-aria" datatype="html">
+        <target>Vorige</target>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.next" datatype="html">
+        <source>»</source>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.next-aria" datatype="html">
+        <target>Volgende</target>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.last" datatype="html">
+        <source>»»</source>
+      </trans-unit>
+      <trans-unit id="ngb.pagination.last-aria" datatype="html">
+        <target>Laatste</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.hours" datatype="html">
+        <target>Uur</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.decrement-hours" datatype="html">
+        <target>Uur verlagen</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.increment-hours" datatype="html">
+        <target>Uur ophogen</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.minutes" datatype="html">
+        <target>Minuut</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.decrement-minutes" datatype="html">
+        <target>Minuut verlagen</target>
+      </trans-unit>      
+      <trans-unit id="ngb.timepicker.increment-minutes" datatype="html">
+        <target>Minuut ophogen</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.seconds" datatype="html">
+        <target>Seconde</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.decrement-seconds" datatype="html">
+        <target>Seconde verlagen</target>
+      </trans-unit>      
+      <trans-unit id="ngb.timepicker.increment-seconds" datatype="html">
+        <target>Seconde ophogen</target>
+      </trans-unit>
+      <trans-unit id="ngb.toast.close-aria" datatype="html">
+        <target>Sluiten</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.HH" datatype="html">
+        <target>HH</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.MM" datatype="html">
+        <target>MM</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.AM" datatype="html">
+        <target>{$INTERPOLATION}</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.PM" datatype="html">
+        <target>{$INTERPOLATION}</target>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.SS" datatype="html">
+        <target>SS</target>
+      </trans-unit>
+      
+      <trans-unit id="ngb.carousel.slide-number" datatype="html">
+        <target> Slide {$INTERPOLATION} van {$INTERPOLATION_1} </target>
+      </trans-unit>
+      <trans-unit id="ngb.progressbar.value" datatype="html">
+        <target> {$INTERPOLATION}</target>
+      </trans-unit>
+<!--
+
+
+      
+      
+      <trans-unit id="ngb.timepicker.HH" datatype="html">
+        <source>HH</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.hours" datatype="html">
+        <source>uren</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.increment-hours" datatype="html">
+        <source>uren ophogen</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.decrement-hours" datatype="html">
+        <source>uren verlagen</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.MM" datatype="html">
+        <source>MM</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.minutes" datatype="html">
+        <source>minuten</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.increment-minutes" datatype="html">
+        <source>minuten ophogen</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.decrement-minutes" datatype="html">
+        <source>minuten verlagen</source>
+      </trans-unit>      
+      <trans-unit id="ngb.timepicker.SS" datatype="html">
+        <source>SS</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.seconds" datatype="html">
+        <source>seconden</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.increment-seconds" datatype="html">
+        <source>seconden ophogen</source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.decrement-seconds" datatype="html">
+        <source>seconden verlagen</source>
+      </trans-unit> -->
+      <trans-unit id="ngb.carousel.next" datatype="html">
+        <source>Next</source>
+        <target>volgende</target>
+      </trans-unit>
+      <trans-unit id="ngb.carousel.previous" datatype="html">
+        <source>Previous</source>
+        <source>vorige</source>
+      </trans-unit>
+      <!-- <trans-unit id="ngb.progressbar.value" datatype="html">
+        <source>
+          <x id="INTERPOLATION" equiv-text="{{ closingValue | currency:&apos;GBP&apos; }}"/>
+        </source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.AM" datatype="html">
+        <source>
+          <x id="INTERPOLATION" equiv-text="{{ closingValue | currency:&apos;GBP&apos; }}"/>
+        </source>
+      </trans-unit>
+      <trans-unit id="ngb.timepicker.PM" datatype="html">
+        <source>
+          <x id="INTERPOLATION" equiv-text="{{ closingValue | currency:&apos;GBP&apos; }}"/>
+        </source>
+      </trans-unit> -->
+      <trans-unit id="app.home.mytournaments" datatype="html">
+        <source>my tournaments</source>
+        <target>mijn toernooien</target>
+      </trans-unit>     
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,12 @@
+:host {
+    --nav-bg: none;
+    background-color: var(--nav-bg);
+
+    --nav-color: none;
+    color: var(--nav-color);
+}
+
+.vr {
+    color: inherit;
+    opacity: 1;
+}

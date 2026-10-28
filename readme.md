@@ -86,8 +86,8 @@ Decisions about accounts and tournaments. Source of truth for behaviour: `infra/
 | Password reset | `POST /auth/passwordreset` always answers `200`, whether or not the address exists (no account enumeration). The email contains a one-time link; the link is valid for 1 hour and can be used once. |
 | One-time tokens | Validation (24 h) and reset (1 h) tokens are random (`crypto.randomBytes`), only a SHA-256 hash and the expiry are stored in MongoDB. |
 | Email delivery | Behind a `Mailer` interface (`source/backend/src/mailer.ts`). Currently only a log transport: the link is written to the application log and **no email is sent**. To do: Azure Communication Services Email. |
-| Session | The web UI keeps the API's JWT (8 h) in an `httpOnly`, `SameSite=Lax` cookie (`Secure` over https); pages never see it. All state changes are POSTs with a CSRF token. |
-| Logout | Client-side only: the cookie is removed. The JWT itself stays technically valid until it expires (no server-side revocation). |
+| Session | The Angular app keeps the API's JWT (8 h) in `localStorage` and sends it as `Authorization: Bearer` through an `HttpClient` interceptor. A `401` on a call with a token logs the user out ("de sessie is verlopen"). Because the token is readable by scripts, the Express server sends a strict CSP (`script-src 'self'`, no inline scripts). |
+| Logout | Client-side only: the token is removed from `localStorage`. The JWT itself stays technically valid until it expires (no server-side revocation). |
 | Profile | The user can change `name` and `emailaddress` (own account only). Only these fields are writable; flags such as `validated` or `nrOfCredits` never are. |
 
 ### Authentication & authorization
@@ -105,7 +105,20 @@ Decisions about accounts and tournaments. Source of truth for behaviour: `infra/
 | Creating | `POST /tournaments` creates the tournament and the creator's role assignment (`Admin`, `RoleAdmin`, `GameResultAdmin`) together. |
 | "My tournaments" | There is no owner field. "Mijn toernooien" is derived from role assignments: `GET /shellswithrole?roles=<bitmask>` (the web UI asks for all roles). The roles of the user are shown per tournament. |
 | Deleting | `DELETE /tournaments/{id}` removes the tournament **and everything scoped to it**: competitors, sponsors, locker rooms (+ their competitor links), recesses, rules, invitations, registrations, registration settings and all role assignments. |
-| Time zone | The web UI enters/shows start times in `Europe/Amsterdam`; the API stores and returns UTC instants. |
+| Time zone | The API stores and returns UTC instants; the UI shows them in the browser's local time. |
+
+### Frontend (Angular)
+
+| Topic | Decision |
+|---|---|
+| Stack | Same as the old app in `fctoernooi-deprecated`: Angular 22 (standalone, zoneless), ng-bootstrap, Bootstrap 5 + Bootswatch Sandstone with the same Sass (`src/sass`), Font Awesome, i18n (`messages.nl.xlf`). No `ngx-sport` (sport/competition specific, not needed yet). Mobile first: every screen must look right from **400 px** wide upwards (this is the one place that number is defined; do not hard-code it in the app) and is compared with the old app at that width. |
+| Scope | Everything outside sport/competition, built module by module. Done: **user** (login, register, password reset/change, validate, profile, delete account). Next: home/tournament list, new tournament, name & theme, authorizations, sponsors, locker rooms, rules, start & recesses, registration. Not included yet: structure, competitors, games, ranking, referees, fields, planning, liveboard, buy credits/payments. |
+| Hosting | Static build (`ng build -c prod,nl` → `dist/browser`) served by `server/server.ts` (Express, `node dist/server.js`) with an SPA fallback. No SSR/prerender. |
+| API base URL | The browser calls the API (APIM, `…/fctoernooi-api/v1`) directly. The Express server injects `FCTOERNOOI_API_BASEURL` at runtime through `/config.js`, so one build runs in every environment. |
+| CORS | Needed because of the direct calls: APIM must allow the frontend origin (`https://as-fctoernooi-frontend-<env>.azurewebsites.net`; dev also `http://localhost:4200`), methods GET/POST/PUT/DELETE/OPTIONS, headers `Authorization` and `Content-Type`, no credentials. The backend itself has no CORS, except the opt-in `CORS_ALLOWED_ORIGINS` for local development. |
+| Registration / password change | The API answers `register` (201) and `passwordchange` (200) without a token, so the app logs in right after. The reset email contains a link with the one-time token; the form shows it prefilled in the "code" field. |
+| Validation email | The link is `/user/validate/<code>` (the same route as in the old app). |
+| Colour mode | Follows the system colour scheme until the user toggles it (stored in `localStorage`). |
 
 ### Not decided / postponed
 

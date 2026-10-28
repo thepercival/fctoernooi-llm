@@ -1,0 +1,50 @@
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-sm-10 col-md-6 col-lg-4 g-0">
+      @if(processing()) {
+      <h2 class="text-center">
+        <fa-icon [icon]="faSpinner" [animation]="'spin'"></fa-icon>
+      </h2>
+      }
+      @let tmplAlert = alert();
+      @if(tmplAlert) {
+      <ngb-alert [type]="tmplAlert.type">{{ tmplAlert.message }}</ngb-alert>
+      }
+      @if(!processing()) {
+      @if(!code) {
+      <div class="card card-auth my-3">
+        <app-user-title title="valideren" [icon]="faUserCircle">
+        </app-user-title>
+        <div class="card-body text-center mx-auto form-validate border-top-0 border-primary">
+          @if(!sentValidationRequest) {
+          <p>
+            Je dient je emailadres te valideren, voordat je nieuwe toernooien kunt aanmaken.
+          </p>
+          <p><button (click)="sendValidationRequest()" type="button" class="btn btn-primary">
+              verstuur validatie email
+            </button></p>
+          }
+          @if(sentValidationRequest) {
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              Er is een email gestuurd naar {{user?.getEmailaddress()}}.
+            </div>
+          </div>
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              Gebruik de link in de email om je emailadres te valideren.
+            </div>
+          </div>
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              Let op: de email kan in de spam-folder zijn terecht gekomen.
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+      }
+    </div>
+  </div>
+</div>

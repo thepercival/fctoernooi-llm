@@ -1,0 +1,64 @@
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-sm-10 col-md-6 col-lg-4 g-0">
+      @if(processing()) {
+      <h2 class="text-center">
+        <fa-icon [icon]="faSpinner" [animation]="'spin'"></fa-icon>
+      </h2>
+      }
+      @if(!processing()) {
+      <div class="card card-auth my-3">
+        <app-user-title title="inloggen" [icon]="faSignInAlt">
+        </app-user-title>
+        <div class="card-body text-center mx-auto form-validate border-top-0 border-primary">
+          @if(alert()) {
+          <ngb-alert [type]="alert()!.type">{{ alert()!.message }}</ngb-alert>
+          }
+
+          @if(!processing() && !authService.isLoggedIn()) {
+          <form name="form" (ngSubmit)="login()" [formGroup]="typedForm"
+            novalidate>
+            <div class="row mb-3">
+              <div class="col-3 text-end">
+                <label for="emailaddress" class="col-form-label">emailadres</label>
+              </div>
+              <div class="col-9">
+                <input class="form-control"
+                  [class.is-invalid]="typedForm.controls.emailaddress.invalid" [class.is-valid]="typedForm.controls.emailaddress.valid "
+                  type="text" formControlName="emailaddress"
+                  placeholder="{{validations.minlengthemailaddress}}-{{validations.maxlengthemailaddress}} karakters">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-3 text-end">
+                <label for="password" class="col-form-label">wachtwoord</label>
+              </div>
+              <div class="col-9">
+                <input class="form-control"
+                  [class.is-invalid]="typedForm.controls.password.invalid" [class.is-valid]="typedForm.controls.password.valid "
+                  type="password" formControlName="password"
+                  placeholder="min. {{validations.minlengthpassword}} karakters">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-9 offset-3 text-start">
+                <button [disabled]="typedForm.invalid" type="submit" class="btn btn-primary">
+                  inloggen
+                </button>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="offset-3 col-9 text-start mt-4">
+                <a routerLink="/user/register" class="me-3">registreren</a>
+                <a routerLink="/user/passwordreset">wachtwoord vergeten</a>
+              </div>
+            </div>
+          </form>
+          }
+
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+</div>

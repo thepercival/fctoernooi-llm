@@ -1,0 +1,15 @@
+<div class="row justify-content-center g-0">
+  <div class="col-sm-12 col-md-10 col-lg-8">
+    <div class="mt-3">
+      @if (alert(); as alert) {
+        <div class="alert alert-{{alert.type}} text-center">{{alert.message}}</div>
+      }
+      @if (!authService.isLoggedIn()) {
+        <div class="text-center">
+          <a routerLink="/user/login" class="btn btn-primary me-2">inloggen</a>
+          <a routerLink="/user/register" class="btn btn-outline-secondary">registreren</a>
+        </div>
+      }
+    </div>
+  </div>
+</div>

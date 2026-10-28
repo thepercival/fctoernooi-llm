@@ -20,7 +20,8 @@ export function createMailer(): Mailer {
   return new LogMailer();
 }
 
-export function frontendLink(path: string, params: Record<string, string>): string {
-  const base = (process.env.FRONTEND_BASEURL ?? 'http://localhost:3000').replace(/\/+$/, '');
-  return `${base}${path}?${new URLSearchParams(params).toString()}`;
+export function frontendLink(path: string, params: Record<string, string> = {}): string {
+  const base = (process.env.FRONTEND_BASEURL ?? 'http://localhost:4200').replace(/\/+$/, '');
+  const query = new URLSearchParams(params).toString();
+  return `${base}${path}${query ? `?${query}` : ''}`;
 }
