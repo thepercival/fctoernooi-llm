@@ -33,15 +33,15 @@
 .chat-docked {
   display: flex;
   flex-direction: column;
-  // viewport minus the top navigation bar
-  min-height: calc(100dvh - 3rem);
+  // viewport minus the top margin of the page wrapper (the navigation bar is currently hidden)
+  min-height: calc(100dvh - 0.5rem);
 }
 
 .chat-docked-log {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.75rem;
   width: 100%;
   max-width: 48rem;
@@ -92,7 +92,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 1.5rem 1rem 0.5rem;
+  padding: 0.25rem 1rem 0.25rem;
 }
 
 .chat-avatar {
@@ -100,16 +100,64 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   background: var(--bs-primary);
   color: #fff;
 }
 
+// Lady with headset (Font Awesome Free has no such icon): white on the avatar colour.
+.lady {
+  width: 88%;
+  height: 88%;
+}
+
+.lady-fill {
+  fill: #fff;
+}
+
+.lady-line {
+  stroke: var(--bs-primary);
+  stroke-width: 12;
+  stroke-linejoin: round;
+}
+
+.lady-ink {
+  fill: var(--bs-primary);
+}
+
+.lady-smile {
+  fill: none;
+  stroke: var(--bs-primary);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.lady-halo {
+  fill: var(--bs-primary);
+  stroke: var(--bs-primary);
+  stroke-width: 22;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  .lady-band { stroke-width: 60; fill: none; }
+  .lady-boom { stroke-width: 44; fill: none; }
+}
+
+.lady-set {
+  fill: #fff;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  .lady-band { stroke-width: 28; fill: none; }
+  .lady-boom { stroke-width: 14; fill: none; }
+}
+
 .chat-avatar-lg {
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 6rem;
+  height: 6rem;
   font-size: 2rem;
   box-shadow: 0 0 0 0.35rem var(--bs-secondary-bg);
 }

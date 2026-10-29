@@ -1,13 +1,38 @@
+<ng-template #lady>
+  <svg class="lady" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" focusable="false">
+    <!-- long hair -->
+    <path class="lady-fill" d="M256 36C140 36 88 128 88 232c0 100-18 150-52 200 86 44 150 14 160-34h120c10 48 74 78 160 34-34-50-52-100-52-200C424 128 372 36 256 36Z"/>
+    <!-- face -->
+    <ellipse class="lady-fill lady-line" cx="256" cy="252" rx="104" ry="128"/>
+    <!-- fringe -->
+    <path class="lady-fill lady-line" d="M152 236C158 136 300 100 360 196c4 8 0 20-10 16-52-8-120 2-170 30-12 6-28 4-28-6Z"/>
+    <!-- eyes and smile -->
+    <circle class="lady-ink" cx="214" cy="270" r="13"/>
+    <circle class="lady-ink" cx="298" cy="270" r="13"/>
+    <path class="lady-smile" d="M226 326c18 18 42 18 60 0"/>
+    <!-- headset: headband, ear cups and microphone, each with an outline in the background colour -->
+    <g class="lady-halo">
+      <path d="M134 250C134 96 378 96 378 250" class="lady-band"/>
+      <rect x="104" y="214" width="54" height="104" rx="26"/>
+      <rect x="354" y="214" width="54" height="104" rx="26"/>
+      <path d="M382 312C382 392 336 408 282 408" class="lady-boom"/>
+      <circle cx="270" cy="408" r="24"/>
+    </g>
+    <g class="lady-set">
+      <path d="M134 250C134 96 378 96 378 250" class="lady-band"/>
+      <rect x="104" y="214" width="54" height="104" rx="26"/>
+      <rect x="354" y="214" width="54" height="104" rx="26"/>
+      <path d="M382 312C382 392 336 408 282 408" class="lady-boom"/>
+      <circle cx="270" cy="408" r="24"/>
+    </g>
+  </svg>
+</ng-template>
+
 <ng-template #avatar>
-  <span class="chat-avatar" aria-hidden="true"><fa-icon [icon]="faRobot"></fa-icon></span>
+  <span class="chat-avatar" aria-hidden="true"><ng-container *ngTemplateOutlet="lady"></ng-container></span>
 </ng-template>
 
 <ng-template #conversation>
-  <div class="chat-row">
-    <ng-container *ngTemplateOutlet="avatar"></ng-container>
-    <div class="chat-bubble chat-bubble-assistant">{{ welcome() }}</div>
-  </div>
-
   @for (message of messages(); track $index) {
     @if (message.author === 'user') {
       <div class="chat-row chat-row-user">
@@ -51,7 +76,7 @@
 
 <ng-template #inputRow>
   <div class="input-group chat-input">
-    <input #field type="text" class="form-control" placeholder="stel een vraag" aria-label="stel een vraag"
+    <input #field type="text" class="form-control" placeholder="toernooiid of een vraag" aria-label="toernooiid of een vraag"
       autocomplete="off" (keydown.enter)="send()">
     <button type="button" class="btn btn-outline-secondary" [class.active]="listening()"
       [disabled]="!speechSupported" [attr.aria-pressed]="listening()"
@@ -69,8 +94,8 @@
 @if (variant() === 'docked') {
   <div class="chat-docked">
     <header class="chat-hero">
-      <span class="chat-avatar chat-avatar-lg" aria-hidden="true"><fa-icon [icon]="faRobot"></fa-icon></span>
       <strong>{{ title() }}</strong>
+      <span class="chat-avatar chat-avatar-lg" aria-hidden="true"><ng-container *ngTemplateOutlet="lady"></ng-container></span>
     </header>
     <div class="chat-docked-log" role="log" aria-live="polite" [attr.aria-label]="title()">
       <ng-container *ngTemplateOutlet="conversation"></ng-container>
@@ -86,7 +111,7 @@
         (keydown.escape)="close()">
         <header class="card-header d-flex align-items-center justify-content-between">
           <span class="d-flex align-items-center gap-2">
-            <span class="chat-avatar" aria-hidden="true"><fa-icon [icon]="faRobot"></fa-icon></span>
+            <span class="chat-avatar" aria-hidden="true"><ng-container *ngTemplateOutlet="lady"></ng-container></span>
             <strong>{{ title() }}</strong>
           </span>
           <button type="button" class="btn-close" aria-label="sluiten" (click)="close()"></button>

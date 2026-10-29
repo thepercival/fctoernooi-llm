@@ -21,8 +21,8 @@ export class HomeComponent implements OnInit {
   readonly suggestions: ChatSuggestion[] = [
     { id: 'create', icon: faPlus, question: 'Toernooi aanmaken', answer: comingSoon },
     { id: 'mine', icon: faTrophy, question: 'Mijn toernooien', answer: comingSoon },
-    { id: 'public', icon: faGlobe, question: 'Publieke toernooien bekijken', answer: comingSoon },
-    { id: 'examples', icon: faEye, question: 'Voorbeeldtoernooien bekijken', answer: comingSoon },
+    { id: 'public', icon: faGlobe, question: 'Publieke toernooien', answer: comingSoon },
+    { id: 'examples', icon: faEye, question: 'Voorbeeldtoernooien', answer: comingSoon },
   ];
 
   ngOnInit() {

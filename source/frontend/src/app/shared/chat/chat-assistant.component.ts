@@ -2,7 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, effect, input, linkedSignal, output, signal, viewChild } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faComments, faMicrophone, faPaperPlane, faRobot, faStop, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faComments, faMicrophone, faPaperPlane, faStop, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 export interface ChatSuggestion {
   id: string;
@@ -41,7 +41,6 @@ type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 export class ChatAssistantComponent {
   readonly suggestions = input.required<ChatSuggestion[]>();
   readonly title = input<string>('Assistent');
-  readonly welcome = input<string>('Hoi! Ik ben je toernooi-assistent. Waarmee kan ik je helpen?');
   readonly followUp = input<string>('Kan ik je nog ergens mee helpen?');
   readonly fallbackAnswer = input<string>('Dat kan ik nog niet beantwoorden. Kies gerust een van de vragen hierboven.');
   readonly speechLang = input<string>('nl-NL');
@@ -61,7 +60,6 @@ export class ChatAssistantComponent {
 
   private readonly answerDelayMs = 700;
 
-  protected readonly faRobot = faRobot;
   protected readonly faComments = faComments;
   protected readonly faXmark = faXmark;
   protected readonly faPaperPlane = faPaperPlane;
