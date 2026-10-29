@@ -1,0 +1,112 @@
+<ng-template #avatar>
+  <span class="chat-avatar" aria-hidden="true"><fa-icon [icon]="faRobot"></fa-icon></span>
+</ng-template>
+
+<ng-template #conversation>
+  <div class="chat-row">
+    <ng-container *ngTemplateOutlet="avatar"></ng-container>
+    <div class="chat-bubble chat-bubble-assistant">{{ welcome() }}</div>
+  </div>
+
+  @for (message of messages(); track $index) {
+    @if (message.author === 'user') {
+      <div class="chat-row chat-row-user">
+        <div class="chat-bubble chat-bubble-user">{{ message.text }}</div>
+      </div>
+    } @else {
+      <div class="chat-row">
+        <ng-container *ngTemplateOutlet="avatar"></ng-container>
+        <div class="chat-bubble chat-bubble-assistant">{{ message.text }}</div>
+      </div>
+    }
+  }
+
+  @if (typing()) {
+    <div class="chat-row" aria-label="de assistent is aan het typen">
+      <ng-container *ngTemplateOutlet="avatar"></ng-container>
+      <div class="chat-bubble chat-bubble-assistant chat-typing" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  } @else {
+    <div class="chat-row">
+      <ng-container *ngTemplateOutlet="avatar"></ng-container>
+      <div class="chat-bubble chat-bubble-assistant chat-bubble-prompt">
+        @if (messages().length > 0) {
+          <p class="mb-2">{{ followUp() }}</p>
+        }
+        <div class="chat-suggestions">
+          @for (suggestion of suggestions(); track suggestion.id) {
+            <button type="button" class="btn btn-primary text-start d-flex align-items-center gap-2"
+              [disabled]="isAsked(suggestion)" (click)="ask(suggestion)">
+              <fa-icon [icon]="suggestion.icon" [fixedWidth]="true"></fa-icon>
+              <span>{{ suggestion.question }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</ng-template>
+
+<ng-template #inputRow>
+  <div class="input-group chat-input">
+    <input #field type="text" class="form-control" placeholder="stel een vraag" aria-label="stel een vraag"
+      autocomplete="off" (keydown.enter)="send()">
+    <button type="button" class="btn btn-outline-secondary" [class.active]="listening()"
+      [disabled]="!speechSupported" [attr.aria-pressed]="listening()"
+      [attr.aria-label]="listening() ? 'stop met luisteren' : 'spreek je vraag in'"
+      [attr.title]="speechSupported ? null : 'spraakherkenning wordt niet ondersteund door deze browser'"
+      (click)="toggleListening()">
+      <fa-icon [icon]="listening() ? faStop : faMicrophone"></fa-icon>
+    </button>
+    <button type="button" class="btn btn-primary" aria-label="verstuur" (click)="send()">
+      <fa-icon [icon]="faPaperPlane"></fa-icon>
+    </button>
+  </div>
+</ng-template>
+
+@if (variant() === 'docked') {
+  <div class="chat-docked">
+    <header class="chat-hero">
+      <span class="chat-avatar chat-avatar-lg" aria-hidden="true"><fa-icon [icon]="faRobot"></fa-icon></span>
+      <strong>{{ title() }}</strong>
+    </header>
+    <div class="chat-docked-log" role="log" aria-live="polite" [attr.aria-label]="title()">
+      <ng-container *ngTemplateOutlet="conversation"></ng-container>
+    </div>
+    <div class="chat-docked-bar">
+      <ng-container *ngTemplateOutlet="inputRow"></ng-container>
+    </div>
+  </div>
+} @else {
+  <div class="chat-assistant">
+    @if (open()) {
+      <section class="chat-panel card shadow" role="dialog" aria-modal="false" [attr.aria-label]="title()"
+        (keydown.escape)="close()">
+        <header class="card-header d-flex align-items-center justify-content-between">
+          <span class="d-flex align-items-center gap-2">
+            <span class="chat-avatar" aria-hidden="true"><fa-icon [icon]="faRobot"></fa-icon></span>
+            <strong>{{ title() }}</strong>
+          </span>
+          <button type="button" class="btn-close" aria-label="sluiten" (click)="close()"></button>
+        </header>
+
+        <div #log class="chat-log card-body" role="log" aria-live="polite">
+          <ng-container *ngTemplateOutlet="conversation"></ng-container>
+        </div>
+      </section>
+    }
+
+    <div class="chat-bar">
+      <div class="shadow chat-input-shadow">
+        <ng-container *ngTemplateOutlet="inputRow"></ng-container>
+      </div>
+
+      <button type="button" class="btn btn-primary chat-toggle shadow" [attr.aria-expanded]="open()"
+        [attr.aria-label]="open() ? 'assistent sluiten' : 'assistent openen'" (click)="toggle()">
+        <fa-icon [icon]="open() ? faXmark : faComments" size="lg"></fa-icon>
+      </button>
+    </div>
+  </div>
+}

@@ -29,7 +29,6 @@ export abstract class UserComponent {
         public authService: AuthService,
         protected globalEventsManager: GlobalEventsManager
     ) {
-        this.globalEventsManager.showFooter.emit(true);
     }
 
     // repositories reject with an Error; show its message, not "Error: message"

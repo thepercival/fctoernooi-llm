@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { NavComponent } from "./shared/layout/nav/nav.component";
-import { FooterComponent } from "./shared/layout/footer/footer.component";
 import { SvgIconComponent } from "./shared/layout/svgicon.component";
 import { RouterOutlet } from "@angular/router";
 
@@ -9,7 +8,7 @@ import { RouterOutlet } from "@angular/router";
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.css'],
     standalone: true,
-    imports: [NavComponent, FooterComponent, RouterOutlet],
+    imports: [NavComponent, RouterOutlet],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {

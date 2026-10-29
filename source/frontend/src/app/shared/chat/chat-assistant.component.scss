@@ -1,0 +1,190 @@
+.chat-assistant {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1040;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  // keep clear of notches / home indicator on mobile
+  padding-bottom: env(safe-area-inset-bottom);
+  // let clicks pass through the empty area around the widget
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.chat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.chat-input-shadow {
+  width: min(20rem, calc(100vw - 6rem));
+  border-radius: var(--bs-border-radius);
+}
+
+.chat-docked {
+  display: flex;
+  flex-direction: column;
+  // viewport minus the top navigation bar
+  min-height: calc(100dvh - 3rem);
+}
+
+.chat-docked-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+// Stuck to the bottom like the navigation bar; a future bottom (tournament) nav bar sets
+// --app-bottom-nav-height so this bar is shown above it.
+.chat-docked-bar {
+  position: sticky;
+  bottom: var(--app-bottom-nav-height, 0px);
+  z-index: 1030;
+  background: var(--bs-body-bg);
+  border-top: 1px solid var(--bs-border-color);
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+
+  > * {
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.chat-toggle {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.chat-panel {
+  width: min(22rem, 100%);
+  max-height: min(32rem, calc(100vh - 8rem));
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  min-height: 6rem;
+}
+
+.chat-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem 0.5rem;
+}
+
+.chat-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--bs-primary);
+  color: #fff;
+}
+
+.chat-avatar-lg {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 2rem;
+  box-shadow: 0 0 0 0.35rem var(--bs-secondary-bg);
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.chat-row-user {
+  justify-content: flex-end;
+}
+
+.chat-bubble {
+  position: relative;
+  max-width: min(85%, 28rem);
+  padding: 0.6rem 0.9rem;
+  border-radius: 1rem;
+  white-space: pre-line;
+}
+
+// speech balloon: the tail points at the assistant avatar
+.chat-bubble-assistant {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+  border-top-left-radius: 0.25rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0.75rem;
+    left: -0.5rem;
+    border: 0.5rem solid transparent;
+    border-left-width: 0;
+    border-right-color: var(--bs-secondary-bg);
+  }
+}
+
+.chat-bubble-user {
+  background: var(--bs-primary);
+  color: #fff;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.chat-bubble-prompt {
+  width: min(100%, 26rem);
+  max-width: none;
+}
+
+.chat-typing {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+
+  span {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.4;
+    animation: chat-typing 1s infinite ease-in-out;
+  }
+
+  span:nth-child(2) { animation-delay: 0.15s; }
+  span:nth-child(3) { animation-delay: 0.3s; }
+}
+
+@keyframes chat-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-0.25rem); opacity: 1; }
+}
+
+.chat-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

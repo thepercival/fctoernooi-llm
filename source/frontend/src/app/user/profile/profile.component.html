@@ -30,7 +30,7 @@
           <div class="col-9">
             <input class="form-control"
               [class.is-invalid]="typedForm.controls.emailaddress.invalid" [class.is-valid]="typedForm.controls.emailaddress.valid "
-              type="text" formControlName="emailaddress"
+              type="text" formControlName="emailaddress" autocomplete="email"
               placeholder="{{validations.minlengthemailaddress}}-{{validations.maxlengthemailaddress}} karakters">
           </div>
         </div>
@@ -41,7 +41,7 @@
           <div class="col-9">
             <input class="form-control" id="name"
               [class.is-invalid]="typedForm.controls.name.invalid"
-              type="text" formControlName="name"
+              type="text" formControlName="name" autocomplete="nickname"
               placeholder="max. {{validations.maxlengthname}} karakters">
           </div>
         </div>

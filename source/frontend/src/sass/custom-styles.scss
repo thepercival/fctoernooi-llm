@@ -65,14 +65,6 @@ tr.table-alternate-dark>td {
     --#{$prefix}table-bg-type: var(--#{$prefix}table-striped-bg);
 }
 
-footer {
-    flex: 1 0 auto;
-}
-
-footer *[href] {
-    color: #{$success};
-}
-
 td .btn.btn-sm,
 th .btn.btn-sm,
 td .list-group-item {

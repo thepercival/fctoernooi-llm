@@ -38,7 +38,7 @@
               <div class="col-9">
                 <input class="form-control"
                   [class.is-invalid]="typedForm.controls.emailaddress.invalid" [class.is-valid]="typedForm.controls.emailaddress.valid "
-                  type="text" formControlName="emailaddress"
+                  type="text" formControlName="emailaddress" autocomplete="username"
                   placeholder="{{validations.minlengthemailaddress}}-{{validations.maxlengthemailaddress}} karakters">
               </div>
             </div>
@@ -49,7 +49,7 @@
               <div class="col-9">
                 <input class="form-control"
                   [class.is-invalid]="typedForm.controls.password.invalid" [class.is-valid]="typedForm.controls.password.valid "
-                  type="password" formControlName="password"
+                  type="password" formControlName="password" autocomplete="new-password"
                   placeholder="min. {{validations.minlengthpassword}} karakters">
               </div>
             </div>
@@ -60,7 +60,7 @@
               <div class="col-9">
                 <input class="form-control"
                   [class.is-invalid]="typedForm.controls.passwordRepeat.invalid" [class.is-valid]="typedForm.controls.passwordRepeat.valid "
-                  type="password" formControlName="passwordRepeat"
+                  type="password" formControlName="passwordRepeat" autocomplete="new-password"
                   placeholder="min. {{validations.minlengthpassword}} karakters">
               </div>
             </div>
